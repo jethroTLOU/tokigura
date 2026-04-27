@@ -10,6 +10,13 @@ on:
     paths:
       - "frontend/**"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   frontend-check:
     runs-on: ubuntu-latest

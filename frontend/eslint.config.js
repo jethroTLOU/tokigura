@@ -1,0 +1,56 @@
+import js from '@eslint/js';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import i18nextPlugin from 'eslint-plugin-i18next';
+import prettierPlugin from 'eslint-plugin-prettier';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
+
+const i18next = i18nextPlugin.default || i18nextPlugin;
+
+export default defineConfig([
+  globalIgnores(['dist', 'src/routeTree.gen.ts', 'src/shared/config/i18n/types/**', 'src-tauri']),
+
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  i18next.configs['flat/recommended'],
+
+  {
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+      prettier: prettierPlugin,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': [
+        'warn',
+        {
+          allowConstantExport: true,
+          allowExportNames: ['Route', 'loader', 'action'],
+        },
+      ],
+      'prettier/prettier': 'error',
+      'i18next/no-literal-string': [
+        'error',
+        {
+          markupOnly: false,
+        },
+      ],
+    },
+  },
+  {
+    files: ['**/shared/ui/**/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  eslintConfigPrettier,
+]);

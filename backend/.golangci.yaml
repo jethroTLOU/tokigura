@@ -306,6 +306,10 @@ linters:
         # https://github.com/godoc-lint/godoc-lint?tab=readme-ov-file#no-unused-link
         - no-unused-link
 
+    gosec:
+      excludes:
+        - G117
+
     govet:
       # Enable all analyzers.
       # Default: false

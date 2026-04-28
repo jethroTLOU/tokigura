@@ -37,9 +37,3 @@ func NewServer(lc fx.Lifecycle, cfg *Config) *fiber.App {
 
 	return app
 }
-
-func RegisterRoutes(app *fiber.App) {
-	app.Get("/health", func(c fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok"})
-	})
-}

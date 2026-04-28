@@ -1,6 +1,6 @@
 MAIN_PATH = cmd/main.go
 BIN_NAME = bin/tokigura
-MIGRATIONS_DIR = internal/database/migrations
+MIGRATIONS_DIR = internal/core/database/migrations
 DEV_DB_PATH = '/Users/jethro/Library/Application Support/tokigura_dev/database.db'
 
 .PHONY: run build mg-create mg-down dev-clean

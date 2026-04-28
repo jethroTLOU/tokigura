@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/log"
-	"github.com/jethroTLOU/tokigura/internal/config"
+	"github.com/jethroTLOU/tokigura/internal/core/config"
 )
 
 func New(cfg *config.Config) *slog.Logger {

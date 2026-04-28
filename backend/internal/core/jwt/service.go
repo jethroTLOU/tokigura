@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/jethroTLOU/tokigura/internal/config"
+	"github.com/jethroTLOU/tokigura/internal/core/config"
 )
 
 const (

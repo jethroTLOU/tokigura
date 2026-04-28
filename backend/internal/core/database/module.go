@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/jethroTLOU/tokigura/internal/config"
+	"github.com/jethroTLOU/tokigura/internal/core/config"
 	"go.uber.org/fx"
 )
 

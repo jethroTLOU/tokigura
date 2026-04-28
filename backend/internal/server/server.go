@@ -5,17 +5,17 @@ import (
 	"log/slog"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/jethroTLOU/tokigura/internal/config"
 	"go.uber.org/fx"
 )
 
 type Config struct {
-	Port string
+	Port    string
+	AppName string
 }
 
 func NewServer(lc fx.Lifecycle, cfg *Config) *fiber.App {
 	app := fiber.New(fiber.Config{
-		AppName: config.GetAppName(),
+		AppName: cfg.AppName,
 	})
 
 	lc.Append(fx.Hook{

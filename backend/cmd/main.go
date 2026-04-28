@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jethroTLOU/tokigura/internal/config"
 	"github.com/jethroTLOU/tokigura/internal/database"
+	"github.com/jethroTLOU/tokigura/internal/jwt"
 	"github.com/jethroTLOU/tokigura/internal/logger"
 	"github.com/jethroTLOU/tokigura/internal/server"
 	"go.uber.org/fx"
@@ -15,6 +16,7 @@ func main() {
 		config.Module,
 		server.Module,
 		database.Module,
+		jwt.Module,
 	)
 
 	app.Run()

@@ -9,9 +9,10 @@ import (
 )
 
 type Config struct {
-	Database string `json:"database"`
-	Port     int    `json:"port"`
-	Debug    bool   `json:"debug"`
+	Database  string `json:"database"`
+	Port      int    `json:"port"`
+	Debug     bool   `json:"debug"`
+	JWTSecret string `json:"jwtSecret"`
 }
 
 const defaultPort = 6969
@@ -62,9 +63,10 @@ func getDefaultConfig(appDir string) *Config {
 	dbURI := fmt.Sprintf("file:%s?cache=shared&mode=rwc", filepath.ToSlash(dbPath))
 
 	return &Config{
-		Database: dbURI,
-		Port:     defaultPort,
-		Debug:    false,
+		Database:  dbURI,
+		Port:      defaultPort,
+		Debug:     false,
+		JWTSecret: "",
 	}
 }
 

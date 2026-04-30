@@ -3,7 +3,7 @@ BIN_NAME = bin/tokigura
 MIGRATIONS_DIR = internal/core/database/migrations
 DEV_DB_PATH = '/Users/jethro/Library/Application Support/tokigura_dev/database.db'
 
-.PHONY: run build mg-create mg-down dev-clean
+.PHONY: run build lint test mg-create mg-down dev-clean
 
 run:
 	GO_DEV=1 go run $(MAIN_PATH)
@@ -11,6 +11,12 @@ run:
 build:
 	go build -o $(BIN_NAME) $(MAIN_PATH)
 	@echo "Build complete: $(BIN_NAME)"
+
+lint:
+	golangci-lint run --timeout=5m -v
+
+test:
+	go test -v -race ./...
 
 
 mg-create:

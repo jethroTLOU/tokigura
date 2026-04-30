@@ -1,86 +1,58 @@
 package config
 
 import (
-	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/adrg/xdg"
 )
 
 type Config struct {
-	Database  string `json:"database"`
-	Port      int    `json:"port"`
-	Debug     bool   `json:"debug"`
-	JWTSecret string `json:"jwtSecret"`
+	Database   string `json:"database"`
+	Port       int    `json:"port"`
+	Debug      bool   `json:"debug"`
+	JWTSecret  string `json:"jwtSecret"`
+	DeviceSalt string `json:"deviceSalt"`
+	UploadsDir string `json:"uploadsDir"`
 }
 
-const defaultPort = 6969
+const (
+	defaultPort       = 6969
+	randomStringBytes = 32
+)
 
 func New() (*Config, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return nil, fmt.Errorf("could not get config dir: %w", err)
+	appName := GetAppName()
+
+	configPath, _ := xdg.ConfigFile(filepath.Join(appName, "config.json"))
+	dbPath, _ := xdg.DataFile(filepath.Join(appName, "database.db"))
+	uploadsDir, _ := xdg.DataFile(filepath.Join(appName, "uploads/"))
+
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o750); err != nil {
+		return nil, err
 	}
-
-	appDir := filepath.Join(configDir, GetAppName())
-	configPath := filepath.Join(appDir, "config.json")
-
-	cfg := getDefaultConfig(appDir)
-
-	if _, err = os.Stat(configPath); os.IsNotExist(err) {
-		if err = os.MkdirAll(appDir, 0o750); err != nil {
-			return nil, fmt.Errorf("failed to create config directory: %w", err)
-		}
-		if err = saveConfig(configPath, cfg); err != nil {
-			return nil, err
-		}
-		return cfg, nil
+	if err := os.MkdirAll(uploadsDir, 0o750); err != nil {
+		return nil, err
 	}
 
 	fileData, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config: %w", err)
-	}
-
-	if err = json.Unmarshal(fileData, cfg); err != nil {
-		return nil, fmt.Errorf("failed to decode config: %w", err)
-	}
-
-	updatedData, _ := json.MarshalIndent(cfg, "", "  ")
-
-	if !bytes.Equal(bytes.TrimSpace(fileData), bytes.TrimSpace(updatedData)) {
-		if err = saveConfig(configPath, cfg); err != nil {
-			return nil, err
+		if os.IsNotExist(err) {
+			return createDefaultConfig(configPath, dbPath, uploadsDir)
 		}
+		return nil, err
 	}
 
-	return cfg, nil
-}
-
-func getDefaultConfig(appDir string) *Config {
-	dbPath := filepath.Join(appDir, "database.db")
-	dbURI := fmt.Sprintf("file:%s?cache=shared&mode=rwc", filepath.ToSlash(dbPath))
-
-	return &Config{
-		Database:  dbURI,
-		Port:      defaultPort,
-		Debug:     false,
-		JWTSecret: "",
-	}
-}
-
-func saveConfig(path string, cfg *Config) error {
-	data, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
+	var cfg Config
+	if err = json.Unmarshal(fileData, &cfg); err != nil {
+		return nil, err
 	}
 
-	if err = os.WriteFile(path, data, 0o600); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
-	return nil
+	return &cfg, nil
 }
 
 func GetAppName() string {
@@ -88,4 +60,34 @@ func GetAppName() string {
 		return "tokigura_dev"
 	}
 	return "tokigura"
+}
+
+func generateRandomString() string {
+	b := make([]byte, randomStringBytes)
+	if _, err := rand.Read(b); err != nil {
+		panic(fmt.Errorf("failed to generate secure random string: %w", err))
+	}
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+func createDefaultConfig(configPath, dbPath, uploadsDir string) (*Config, error) {
+	cfg := &Config{
+		Database:   fmt.Sprintf("file:%s?cache=shared&mode=rwc", filepath.ToSlash(dbPath)),
+		Port:       defaultPort,
+		Debug:      false,
+		JWTSecret:  generateRandomString(),
+		DeviceSalt: generateRandomString(),
+		UploadsDir: uploadsDir,
+	}
+
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal default config: %w", err)
+	}
+
+	if err = os.WriteFile(configPath, data, 0o600); err != nil {
+		return nil, fmt.Errorf("failed to write default config file: %w", err)
+	}
+
+	return cfg, nil
 }

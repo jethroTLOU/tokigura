@@ -28,7 +28,7 @@ func New(lc fx.Lifecycle, cfg *Config, logger *slog.Logger) (*sqlx.DB, error) {
 
 	lc.Append(fx.Hook{
 		OnStop: func(_ context.Context) error {
-			slog.Info("Closing SQLite connection...")
+			logger.Info("Closing SQLite connection...")
 			return db.Close()
 		},
 	})
@@ -53,7 +53,13 @@ func RunMigrations(db *sqlx.DB, logger *slog.Logger) error {
 		return err
 	}
 
-	logger.Debug("Migration", "current_db_version", currentVer, "files_found_in_embed", len(migrations))
+	logger.Debug(
+		"Migration",
+		"current_db_version",
+		currentVer,
+		"files_found_in_embed",
+		len(migrations),
+	)
 
 	for _, m := range migrations {
 		logger.Debug("Available migration", "version", m.Version, "source", m.Source)

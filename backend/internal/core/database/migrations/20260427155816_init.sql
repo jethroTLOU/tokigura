@@ -3,27 +3,29 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   username TEXT NOT NULL UNIQUE,
+  role TEXT NOT NULL,
   password TEXT NOT NULL,
-  avatar_url TEXT,
-  is_active INTEGER DEFAULT 1,
+  avatar TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-
-CREATE TABLE IF NOT EXISTS sessions (
+CREATE TABLE IF NOT EXISTS user_sessions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   token_hash TEXT NOT NULL,
-  device_info TEXT,
-  ip_address TEXT,
+  device_info TEXT NOT NULL,
+  device_hash TEXT NOT NULL,
+  ip_address TEXT NOT NULL,
+  last_ip_address TEXT NOT NULL,
   expires_at DATETIME NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
   FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_sessions_token_hash ON sessions (token_hash);
+CREATE INDEX idx_user_sessions_user_id ON user_sessions (user_id);
 
 -- +goose Down
 DROP TABLE users;
-DROP TABLE sessions;
+DROP TABLE user_sessions;

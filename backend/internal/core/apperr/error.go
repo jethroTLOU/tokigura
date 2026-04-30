@@ -17,6 +17,10 @@ func NewValidation(details map[string]any) *InternalError {
 	}
 }
 
+func NewBindError(err error) *InternalError {
+	return Wrap(err, CodeBadRequest, "Invalid request format. Please check the submitted data.")
+}
+
 func (e *InternalError) Error() string {
 	if e.Err != nil {
 		return fmt.Sprintf("%s: %v", e.Message, e.Err)

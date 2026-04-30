@@ -8,4 +8,5 @@ const (
 	CodeConflict         ErrorCode = "conflict"
 	CodeUnauthorized     ErrorCode = "unauthorized"
 	CodeInternal         ErrorCode = "internal_error"
+	CodeBadRequest       ErrorCode = "bad_request"
 )

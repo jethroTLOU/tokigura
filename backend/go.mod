@@ -11,6 +11,16 @@ require (
 	modernc.org/sqlite v1.50.0
 )
 
+require github.com/adrg/xdg v0.5.3
+
+require (
+	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-playground/validator/v10 v10.30.2 // indirect
+	github.com/leodido/go-urn v1.4.0 // indirect
+)
+
 require (
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
@@ -23,8 +33,8 @@ require (
 	github.com/go-logfmt/logfmt v0.6.1 // indirect
 	github.com/gofiber/schema v1.7.1 // indirect
 	github.com/gofiber/utils/v2 v2.0.4 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/google/uuid v1.6.0
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

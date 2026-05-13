@@ -12,12 +12,13 @@ import (
 )
 
 type Config struct {
-	Database   string `json:"database"`
-	Port       int    `json:"port"`
-	Debug      bool   `json:"debug"`
-	JWTSecret  string `json:"jwtSecret"`
-	DeviceSalt string `json:"deviceSalt"`
-	UploadsDir string `json:"uploadsDir"`
+	Database      string `json:"database"`
+	Port          int    `json:"port"`
+	Debug         bool   `json:"debug"`
+	JWTSecret     string `json:"jwtSecret"`
+	SecureCookies bool   `json:"secureCookies"`
+	DeviceSalt    string `json:"deviceSalt"`
+	UploadsDir    string `json:"uploadsDir"`
 }
 
 const (
@@ -56,10 +57,14 @@ func New() (*Config, error) {
 }
 
 func GetAppName() string {
-	if os.Getenv("GO_DEV") != "" {
+	if IsDevMode() {
 		return "tokigura_dev"
 	}
 	return "tokigura"
+}
+
+func IsDevMode() bool {
+	return os.Getenv("GO_DEV") != ""
 }
 
 func generateRandomString() string {
@@ -72,12 +77,13 @@ func generateRandomString() string {
 
 func createDefaultConfig(configPath, dbPath, uploadsDir string) (*Config, error) {
 	cfg := &Config{
-		Database:   fmt.Sprintf("file:%s?cache=shared&mode=rwc", filepath.ToSlash(dbPath)),
-		Port:       defaultPort,
-		Debug:      false,
-		JWTSecret:  generateRandomString(),
-		DeviceSalt: generateRandomString(),
-		UploadsDir: uploadsDir,
+		Database:      fmt.Sprintf("file:%s?cache=shared&mode=rwc", filepath.ToSlash(dbPath)),
+		Port:          defaultPort,
+		Debug:         false,
+		JWTSecret:     generateRandomString(),
+		SecureCookies: false,
+		DeviceSalt:    generateRandomString(),
+		UploadsDir:    uploadsDir,
 	}
 
 	data, err := json.MarshalIndent(cfg, "", "  ")

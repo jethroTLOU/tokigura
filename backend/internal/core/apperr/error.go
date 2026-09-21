@@ -1,11 +1,6 @@
 package apperr
 
-import (
-	"errors"
-	"fmt"
-
-	"github.com/go-playground/validator/v10"
-)
+import "fmt"
 
 type InternalError struct {
 	Code    ErrorCode
@@ -20,21 +15,6 @@ func NewValidation(details map[string]any) *InternalError {
 		Message: "Validation error.",
 		Details: details,
 	}
-}
-
-func FromValidator(e error) *InternalError {
-	err, ok := errors.AsType[*validator.ValidationErrors](e)
-	if !ok {
-		return Wrap(e, CodeInternal, "Given non validation error type")
-	}
-
-	errs := make(map[string]any, len(*err))
-
-	for _, validationError := range *err {
-		errs[validationError.Field()] = validationError.Error()
-	}
-
-	return NewValidation(errs)
 }
 
 func NewBindError(err error) *InternalError {

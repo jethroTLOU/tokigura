@@ -1,9 +1,10 @@
-MAIN_PATH = cmd/main.go
+MAIN_PATH = cmd/app/main.go
 BIN_NAME = bin/tokigura
-MIGRATIONS_DIR = internal/core/database/migrations
-DEV_DB_PATH = '/Users/jethro/Library/Application Support/tokigura_dev/database.db'
+GOOSE_ENV ?= .env.dev
 
-.PHONY: run build lint test mg-create mg-down dev-clean
+.PHONY: run build test lint \
+        mg-create mg-up mg-down mg-status \
+        dev-clean
 
 run:
 	GO_DEV=1 go run $(MAIN_PATH)
@@ -12,22 +13,24 @@ build:
 	go build -o $(BIN_NAME) $(MAIN_PATH)
 	@echo "Build complete: $(BIN_NAME)"
 
-lint:
-	golangci-lint run --timeout=5m -v
-
 test:
 	go test -v -race ./...
-
 
 mg-create:
 	@if [ -z "$(name)" ]; then \
 		echo "Specify migration name. Example: make mg-create name=init"; \
 		exit 1; \
 	fi
-	goose -dir $(MIGRATIONS_DIR) create $(name) sql
+	goose -env=$(GOOSE_ENV) create $(name) sql
+
+mg-up:
+	goose -env=$(GOOSE_ENV) up
 
 mg-down:
-	goose -dir $(MIGRATIONS_DIR) sqlite3 $(DEV_DB_PATH) down
+	goose -env=$(GOOSE_ENV) down
+
+mg-status:
+	goose -env=$(GOOSE_ENV) status
 
 dev-clean:
-	rm -f $(DEV_DB_PATH)
+	@echo "Not implemented"

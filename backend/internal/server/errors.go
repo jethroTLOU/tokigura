@@ -16,6 +16,7 @@ func ErrorHandler(logger *slog.Logger) fiber.ErrorHandler {
 		apperr.CodeInternal:         http.StatusInternalServerError,
 		apperr.CodeNotFound:         http.StatusNotFound,
 		apperr.CodeUnauthorized:     http.StatusUnauthorized,
+		apperr.CodeBadRequest:       http.StatusBadRequest,
 	}
 
 	return func(ctx fiber.Ctx, e error) error {

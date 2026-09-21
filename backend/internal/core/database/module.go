@@ -5,7 +5,6 @@ import (
 	"go.uber.org/fx"
 )
 
-//nolint:gochecknoglobals // uber fx module
 var Module = fx.Module("database",
 	fx.Provide(
 		func(cfg *config.Config) *Config {

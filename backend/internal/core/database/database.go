@@ -5,7 +5,8 @@ import (
 	"embed"
 	"log/slog"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"go.uber.org/fx"
 )
@@ -17,33 +18,44 @@ type Config struct {
 	DSN string `json:"dsn"`
 }
 
-func New(lc fx.Lifecycle, cfg *Config, logger *slog.Logger) (*sqlx.DB, error) {
-	db, err := sqlx.Connect("sqlite", cfg.DSN)
+func New(lc fx.Lifecycle, cfg *Config, logger *slog.Logger) (*pgxpool.Pool, error) {
+	ctx := context.Background()
+
+	pool, err := pgxpool.New(ctx, cfg.DSN)
 	if err != nil {
-		logger.Error("Failed to connect to SQLite", "error", err)
+		logger.Error("Failed to create database pool.", "error", err)
 		return nil, err
 	}
 
-	logger.Info("Connected to SQLite successfully", "dsn", cfg.DSN)
+	if err := pool.Ping(ctx); err != nil {
+		logger.Error("Failed to ping database.", "error", err)
+		return nil, err
+	}
+
+	logger.Info("Connected to PostgreSQL successfully", "dsn", cfg.DSN)
 
 	lc.Append(fx.Hook{
 		OnStop: func(_ context.Context) error {
-			logger.Info("Closing SQLite connection...")
-			return db.Close()
+			logger.Info("Closing PostgreSQL connection pool...")
+			pool.Close()
+			return nil
 		},
 	})
 
-	return db, nil
+	return pool, nil
 }
 
-func RunMigrations(db *sqlx.DB, logger *slog.Logger) error {
+func RunMigrations(pool *pgxpool.Pool, logger *slog.Logger) error {
 	goose.SetBaseFS(embedMigrations)
 
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	if err := goose.SetDialect("postgres"); err != nil {
 		return err
 	}
 
-	currentVer, err := goose.GetDBVersion(db.DB)
+	sqldb := stdlib.OpenDB(*pool.Config().ConnConfig)
+	defer sqldb.Close()
+
+	currentVer, err := goose.GetDBVersion(sqldb)
 	if err != nil {
 		return err
 	}
@@ -65,7 +77,7 @@ func RunMigrations(db *sqlx.DB, logger *slog.Logger) error {
 		logger.Debug("Available migration", "version", m.Version, "source", m.Source)
 	}
 
-	if err = goose.Up(db.DB, "migrations"); err != nil {
+	if err = goose.Up(sqldb, "migrations"); err != nil {
 		return err
 	}
 

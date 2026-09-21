@@ -11,19 +11,27 @@ import (
 	"github.com/adrg/xdg"
 )
 
+type authCfg struct {
+	JWTSecret           string `json:"jwtSecret"`
+	SecureCookies       bool   `json:"secureCookies"`
+	DeviceSalt          string `json:"deviceSalt"`
+	AccessTokeDuration  int    `json:"accessTokeDuration"`
+	RefreshTokeDuration int    `json:"refreshTokeDuration"`
+}
+
 type Config struct {
-	Database      string `json:"database"`
-	Port          int    `json:"port"`
-	Debug         bool   `json:"debug"`
-	JWTSecret     string `json:"jwtSecret"`
-	SecureCookies bool   `json:"secureCookies"`
-	DeviceSalt    string `json:"deviceSalt"`
-	UploadsDir    string `json:"uploadsDir"`
+	Auth       *authCfg `json:"auth"`
+	Database   string   `json:"database"`
+	Port       int      `json:"port"`
+	Debug      bool     `json:"debug"`
+	UploadsDir string   `json:"uploadsDir"`
 }
 
 const (
-	defaultPort       = 6969
-	randomStringBytes = 32
+	defaultPort                 = 6969
+	defaultAccessTokenDuration  = 15
+	defaultRefreshTokenDuration = 30
+	randomStringBytes           = 32
 )
 
 func New() (*Config, error) {
@@ -77,13 +85,17 @@ func generateRandomString() string {
 
 func createDefaultConfig(configPath, dbPath, uploadsDir string) (*Config, error) {
 	cfg := &Config{
-		Database:      fmt.Sprintf("file:%s?cache=shared&mode=rwc", filepath.ToSlash(dbPath)),
-		Port:          defaultPort,
-		Debug:         false,
-		JWTSecret:     generateRandomString(),
-		SecureCookies: false,
-		DeviceSalt:    generateRandomString(),
-		UploadsDir:    uploadsDir,
+		Database:   fmt.Sprintf("file:%s?cache=shared&mode=rwc&_fk=1", filepath.ToSlash(dbPath)),
+		Port:       defaultPort,
+		Debug:      false,
+		UploadsDir: uploadsDir,
+		Auth: &authCfg{
+			JWTSecret:           generateRandomString(),
+			SecureCookies:       false,
+			DeviceSalt:          generateRandomString(),
+			AccessTokeDuration:  defaultAccessTokenDuration,
+			RefreshTokeDuration: defaultRefreshTokenDuration,
+		},
 	}
 
 	data, err := json.MarshalIndent(cfg, "", "  ")

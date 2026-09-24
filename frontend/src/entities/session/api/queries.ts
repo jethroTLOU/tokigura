@@ -6,7 +6,7 @@ export const sessionQueries = {
   all: () => ['session'] as const,
   me: () =>
     queryOptions({
-      queryKey: [...sessionQueries.all(), 'me'],
+      queryKey: [...sessionQueries.all(), 'me'] as const,
       queryFn: fetchMe,
       retry: false,
       staleTime: 60 * 1000,

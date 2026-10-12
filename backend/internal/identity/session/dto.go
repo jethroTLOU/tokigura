@@ -13,7 +13,6 @@ type CreateSessionDTO struct {
 	Role      user.Role
 	IP        netip.Addr
 	UserAgent string
-	DeviceID  uuid.UUID
 }
 
 type UpdateRotatedParams struct {

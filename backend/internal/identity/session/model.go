@@ -11,7 +11,6 @@ type Session struct {
 	UserID     uuid.UUID `db:"user_id"`
 	TokenHash  string    `db:"token_hash"`
 	DeviceInfo string    `db:"device_info"`
-	DeviceHash string    `db:"device_hash"`
 
 	IPAddress     netip.Addr `db:"ip_address"`
 	LastIPAddress netip.Addr `db:"last_ip_address"`

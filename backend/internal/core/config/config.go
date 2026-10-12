@@ -14,11 +14,11 @@ import (
 type authCfg struct {
 	JWTSecret           string `json:"jwtSecret"`
 	SecureCookies       bool   `json:"secureCookies"`
-	DeviceSalt          string `json:"deviceSalt"`
 	AccessTokeDuration  int    `json:"accessTokeDuration"`
 	RefreshTokeDuration int    `json:"refreshTokeDuration"`
 }
 
+// Config stores application settings/credentials
 type Config struct {
 	Auth       *authCfg `json:"auth"`
 	Database   string   `json:"database"`
@@ -39,7 +39,7 @@ func New() (*Config, error) {
 
 	configPath, _ := xdg.ConfigFile(filepath.Join(appName, "config.json"))
 	dbPath, _ := xdg.DataFile(filepath.Join(appName, "database.db"))
-	uploadsDir, _ := xdg.DataFile(filepath.Join(appName, "uploads/"))
+	uploadsDir, _ := xdg.DataFile(filepath.Join(appName, "uploads"))
 
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o750); err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func New() (*Config, error) {
 		return nil, err
 	}
 
-	fileData, err := os.ReadFile(configPath)
+	fileData, err := os.ReadFile(configPath) // nolint:gosec // path build via XDG and is safe
 	if err != nil {
 		if os.IsNotExist(err) {
 			return createDefaultConfig(configPath, dbPath, uploadsDir)
@@ -57,7 +57,7 @@ func New() (*Config, error) {
 	}
 
 	var cfg Config
-	if err = json.Unmarshal(fileData, &cfg); err != nil {
+	if err := json.Unmarshal(fileData, &cfg); err != nil {
 		return nil, err
 	}
 
@@ -97,7 +97,6 @@ func createDefaultConfig(configPath, dbPath, uploadsDir string) (*Config, error)
 		Auth: &authCfg{
 			JWTSecret:           generateRandomString(),
 			SecureCookies:       false,
-			DeviceSalt:          generateRandomString(),
 			AccessTokeDuration:  defaultAccessTokenDuration,
 			RefreshTokeDuration: defaultRefreshTokenDuration,
 		},

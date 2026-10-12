@@ -16,13 +16,11 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Username string `json:"username" validate:"required,min=3,max=32,alphanum"`
 	Password string `json:"password" validate:"required,min=8,max=72"`
-	DeviceID string `json:"deviceId" validate:"required,uuid"`
 }
 
 type LoginDTO struct {
 	Username  string
 	Password  string
-	DeviceID  uuid.UUID
 	IP        netip.Addr
 	UserAgent string
 }

@@ -108,11 +108,6 @@ func (h *Handler) login(ctx fiber.Ctx) error {
 		return err
 	}
 
-	deviceID, err := uuid.Parse(req.DeviceID)
-	if err != nil {
-		return apperr.New(apperr.CodeBadRequest, "invalid device id format")
-	}
-
 	ip, err := netip.ParseAddr(ctx.IP())
 	if err != nil {
 		return apperr.New(apperr.CodeBadRequest, "invalid IP address")
@@ -121,7 +116,6 @@ func (h *Handler) login(ctx fiber.Ctx) error {
 	dto := LoginDTO{
 		Username:  req.Username,
 		Password:  req.Password,
-		DeviceID:  deviceID,
 		IP:        ip,
 		UserAgent: string(ctx.Request().Header.UserAgent()),
 	}

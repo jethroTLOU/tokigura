@@ -2,13 +2,9 @@ package session
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"net/netip"
 	"uuid"
 
-	"github.com/jethroTLOU/tokigura/internal/core/config"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
 	"github.com/jethroTLOU/tokigura/internal/identity/user"
 	"github.com/jethroTLOU/tokigura/pkg/cryptoutil"
@@ -28,14 +24,12 @@ type jwtService interface {
 type Service struct {
 	repository repository
 	jwtService jwtService
-	config     *config.Config
 }
 
-func NewService(repo repository, jwt jwtService, config *config.Config) *Service {
+func NewService(repo repository, jwtSvc jwtService) *Service {
 	return &Service{
 		repository: repo,
-		jwtService: jwt,
-		config:     config,
+		jwtService: jwtSvc,
 	}
 }
 
@@ -49,13 +43,12 @@ func (s *Service) Create(ctx context.Context, dto CreateSessionDTO) (*jwt.TokenP
 		UserID:        dto.UserID,
 		TokenHash:     cryptoutil.SHA256Hex(tokens.RefreshToken),
 		DeviceInfo:    dto.UserAgent,
-		DeviceHash:    s.generateDeviceHash(dto.DeviceID, dto.UserID),
 		IPAddress:     dto.IP,
 		LastIPAddress: dto.IP,
 		ExpiresAt:     tokens.RefreshExpiresAt,
 	}
 
-	if err = s.repository.Create(ctx, sess); err != nil {
+	if err := s.repository.Create(ctx, sess); err != nil {
 		return nil, err
 	}
 
@@ -100,11 +93,4 @@ func (s *Service) RotateSession(
 
 func (s *Service) DeleteExpired(ctx context.Context) error {
 	return s.repository.DeleteExpired(ctx)
-}
-
-func (s *Service) generateDeviceHash(deviceID, userID uuid.UUID) string {
-	h := hmac.New(sha256.New, []byte(s.config.Auth.DeviceSalt))
-	h.Write([]byte(deviceID.String() + ":" + userID.String()))
-
-	return hex.EncodeToString(h.Sum(nil))
 }

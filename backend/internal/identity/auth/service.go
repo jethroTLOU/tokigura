@@ -80,7 +80,6 @@ func (s *Service) Login(ctx context.Context, dto LoginDTO) (*jwt.TokenPair, erro
 		Role:      u.Role,
 		IP:        dto.IP,
 		UserAgent: dto.UserAgent,
-		DeviceID:  dto.DeviceID,
 	}
 
 	return s.sessions.Create(ctx, sessionDTO)

@@ -11,7 +11,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"go.uber.org/fx"
-	_ "modernc.org/sqlite"
+	_ "modernc.org/sqlite" // nolint:revive // db
 )
 
 //go:embed migrations/*.sql
@@ -32,7 +32,7 @@ func New(lc fx.Lifecycle, cfg Config) (*bun.DB, error) {
 	sqldb.SetMaxIdleConns(10)
 	sqldb.SetConnMaxLifetime(time.Hour)
 
-	if err := sqldb.Ping(); err != nil {
+	if err := sqldb.PingContext(context.Background()); err != nil {
 		slog.Error("Failed to ping SQLite", "error", err)
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func RunMigrations(db *bun.DB) error {
 		slog.Debug("Available migration", "version", m.Version, "source", m.Source)
 	}
 
-	if err = goose.Up(db.DB, "migrations"); err != nil {
+	if err := goose.Up(db.DB, "migrations"); err != nil {
 		return err
 	}
 

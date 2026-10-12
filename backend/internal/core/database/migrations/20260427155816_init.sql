@@ -34,7 +34,6 @@ CREATE TABLE user_sessions (
     user_id TEXT NOT NULL,
     token_hash TEXT NOT NULL,
     device_info TEXT NOT NULL,
-    device_hash TEXT NOT NULL,
 
     ip_address TEXT NOT NULL,
     last_ip_address TEXT NOT NULL,

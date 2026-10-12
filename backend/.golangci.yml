@@ -1,0 +1,54 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    - unused
+    - unparam
+    - ineffassign
+    - govet
+    - staticcheck
+    - errorlint
+    - noctx
+    - errcheck
+    - gosec
+    - gocritic
+    - revive
+    - prealloc
+
+  settings:
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - ifElseChain
+        - hugeParam
+
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+
+exclusions:
+  rules:
+    - text: "exported: exported var Module"
+      linters:
+        - revive

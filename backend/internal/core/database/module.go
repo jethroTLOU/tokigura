@@ -1,16 +1,19 @@
 package database
 
 import (
-	"github.com/jethroTLOU/tokigura/internal/core/config"
+	"context"
+
+	"github.com/uptrace/bun"
 	"go.uber.org/fx"
 )
 
 var Module = fx.Module("database",
-	fx.Provide(
-		func(cfg *config.Config) *Config {
-			return &Config{DSN: cfg.Database}
-		},
-		New,
-	),
-	fx.Invoke(RunMigrations),
+	fx.Provide(New),
+	fx.Invoke(func(lc fx.Lifecycle, db *bun.DB) {
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				return RunMigrations(db)
+			},
+		})
+	}),
 )

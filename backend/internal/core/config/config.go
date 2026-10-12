@@ -84,8 +84,13 @@ func generateRandomString() string {
 }
 
 func createDefaultConfig(configPath, dbPath, uploadsDir string) (*Config, error) {
+	dsn := fmt.Sprintf(
+		"file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=synchronous(NORMAL)",
+		filepath.ToSlash(dbPath),
+	)
+
 	cfg := &Config{
-		Database:   fmt.Sprintf("file:%s?cache=shared&mode=rwc&_fk=1", filepath.ToSlash(dbPath)),
+		Database:   dsn,
 		Port:       defaultPort,
 		Debug:      false,
 		UploadsDir: uploadsDir,

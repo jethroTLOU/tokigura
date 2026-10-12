@@ -18,6 +18,9 @@ func main() {
 	app := fx.New(
 		logger.Module,
 		config.Module,
+		fx.Provide(func(cfg *config.Config) database.Config {
+			return database.Config{DSN: cfg.Database}
+		}),
 		server.Module,
 		database.Module,
 		jwt.Module,

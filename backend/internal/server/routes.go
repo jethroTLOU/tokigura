@@ -17,7 +17,7 @@ type RegisterRoutesParams struct {
 }
 
 func RegisterRoutes(p RegisterRoutesParams) {
-	api := p.App.Group("/api/v1")
+	api := p.App.Group("/api")
 
 	for _, r := range p.Routes {
 		r.Register(api)

@@ -9,7 +9,7 @@ import (
 	"github.com/jethroTLOU/tokigura/internal/core/apperr"
 )
 
-func ErrorHandler(logger *slog.Logger) fiber.ErrorHandler {
+func ErrorHandler() fiber.ErrorHandler {
 	errorMap := map[apperr.ErrorCode]int{
 		apperr.CodeConflict:         http.StatusConflict,
 		apperr.CodeValidationFailed: http.StatusBadRequest,
@@ -26,11 +26,11 @@ func ErrorHandler(logger *slog.Logger) fiber.ErrorHandler {
 			if mappedStatus, exists := errorMap[err.Code]; exists {
 				status = mappedStatus
 			} else {
-				logger.Warn("application error code has no mapped http status", "code", err.Code)
+				slog.Warn("application error code has no mapped http status", "code", err.Code)
 			}
 
 			if status >= http.StatusInternalServerError {
-				logger.Error("internal server error occurred",
+				slog.Error("internal server error occurred",
 					"err", err.Error(),
 					"code", err.Code,
 					"details", err.Details,
@@ -57,7 +57,7 @@ func ErrorHandler(logger *slog.Logger) fiber.ErrorHandler {
 			return ctx.Status(err.Code).JSON(fiber.Map{"message": err.Message})
 		}
 
-		logger.Error("unhandled generic error", "err", e.Error())
+		slog.Error("unhandled generic error", "err", e.Error())
 		return ctx.Status(status).JSON(fiber.Map{"message": "Internal Server Error"})
 	}
 }

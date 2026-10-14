@@ -51,7 +51,7 @@ func (s *Service) Register(ctx context.Context, dto RegisterRequest) error {
 	}
 
 	newUser := &user.User{
-		ID:       uuid.New(),
+		ID:       uuid.NewV7(),
 		Email:    strings.ToLower(dto.Email),
 		Username: strings.ToLower(dto.Username),
 		Password: string(hashedPassword),

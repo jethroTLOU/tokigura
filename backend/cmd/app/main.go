@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/jethroTLOU/tokigura/internal/core/config"
 	"github.com/jethroTLOU/tokigura/internal/core/database"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
@@ -20,6 +22,13 @@ func main() {
 		config.Module,
 		fx.Provide(func(cfg *config.Config) database.Config {
 			return database.Config{DSN: cfg.Database}
+		}),
+		fx.Provide(func(cfg *config.Config) *server.Config {
+			return &server.Config{
+				Port:         fmt.Sprintf(":%d", cfg.Server.Port),
+				AppName:      config.GetAppName(),
+				AllowOrigins: cfg.Server.AllowOrigins,
+			}
 		}),
 		server.Module,
 		database.Module,

@@ -18,14 +18,20 @@ type authCfg struct {
 	RefreshTokeDuration int    `json:"refreshTokeDuration"`
 }
 
-// Config stores application settings/credentials
-type Config struct {
-	Auth       *authCfg `json:"auth"`
-	Database   string   `json:"database"`
-	Port       int      `json:"port"`
-	Debug      bool     `json:"debug"`
-	UploadsDir string   `json:"uploadsDir"`
+type serverCfg struct {
+	Port         int      `json:"port"`
+	AllowOrigins []string `json:"allowOrigins"`
 }
+
+type Config struct {
+	Auth       *authCfg   `json:"auth"`
+	Server     *serverCfg `json:"server"`
+	Database   string     `json:"database"`
+	Debug      bool       `json:"debug"`
+	UploadsDir string     `json:"uploadsDir"`
+}
+
+var defaultCors = []string{"*"}
 
 const (
 	defaultPort                 = 6969
@@ -48,7 +54,7 @@ func New() (*Config, error) {
 		return nil, err
 	}
 
-	fileData, err := os.ReadFile(configPath) // nolint:gosec // path build via XDG and is safe
+	fileData, err := os.ReadFile(configPath) //nolint:gosec // safe
 	if err != nil {
 		if os.IsNotExist(err) {
 			return createDefaultConfig(configPath, dbPath, uploadsDir)
@@ -91,9 +97,12 @@ func createDefaultConfig(configPath, dbPath, uploadsDir string) (*Config, error)
 
 	cfg := &Config{
 		Database:   dsn,
-		Port:       defaultPort,
 		Debug:      false,
 		UploadsDir: uploadsDir,
+		Server: &serverCfg{
+			Port:         defaultPort,
+			AllowOrigins: defaultCors,
+		},
 		Auth: &authCfg{
 			JWTSecret:           generateRandomString(),
 			SecureCookies:       false,

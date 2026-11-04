@@ -18,7 +18,7 @@ type repository interface {
 	DeleteExpired(ctx context.Context) error
 }
 type jwtService interface {
-	GenerateTokenPair(userID uuid.UUID, role user.Role) (*jwt.TokenPair, error)
+	GenerateTokenPair(userID uuid.UUID, role string) (*jwt.TokenPair, error)
 }
 
 type Service struct {
@@ -34,12 +34,13 @@ func NewService(repo repository, jwtSvc jwtService) *Service {
 }
 
 func (s *Service) Create(ctx context.Context, dto CreateSessionDTO) (*jwt.TokenPair, error) {
-	tokens, err := s.jwtService.GenerateTokenPair(dto.UserID, dto.Role)
+	tokens, err := s.jwtService.GenerateTokenPair(dto.UserID, string(dto.Role))
 	if err != nil {
 		return nil, err
 	}
 
 	sess := &Session{
+		ID:            uuid.NewV7(),
 		UserID:        dto.UserID,
 		TokenHash:     cryptoutil.SHA256Hex(tokens.RefreshToken),
 		DeviceInfo:    dto.UserAgent,
@@ -71,7 +72,7 @@ func (s *Service) RotateSession(
 	role user.Role,
 	ip netip.Addr,
 ) (*jwt.TokenPair, error) {
-	tokens, err := s.jwtService.GenerateTokenPair(userID, role)
+	tokens, err := s.jwtService.GenerateTokenPair(userID, string(role))
 	if err != nil {
 		return nil, err
 	}

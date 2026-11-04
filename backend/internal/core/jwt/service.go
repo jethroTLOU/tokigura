@@ -1,5 +1,6 @@
 package jwt
 
+// TODO: много чего делать
 import (
 	"crypto/rand"
 	"encoding/hex"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jethroTLOU/tokigura/internal/core/config"
-	"github.com/jethroTLOU/tokigura/internal/identity/user"
 )
 
 type Service struct {
@@ -26,7 +26,7 @@ func NewService(cfg *config.Config) *Service {
 	}
 }
 
-func (s *Service) GenerateTokenPair(userID uuid.UUID, role user.Role) (*TokenPair, error) {
+func (s *Service) GenerateTokenPair(userID uuid.UUID, role string) (*TokenPair, error) {
 	refresh, err := s.GenerateRefreshToken()
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (s *Service) GenerateRefreshToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func (s *Service) GenerateAccessToken(userID uuid.UUID, role user.Role) (string, error) {
+func (s *Service) GenerateAccessToken(userID uuid.UUID, role string) (string, error) {
 	claims := Claims{
 		UserID: userID.String(),
 		Role:   role,

@@ -4,17 +4,21 @@ import (
 	"net/netip"
 	"time"
 	"uuid"
+
+	"github.com/uptrace/bun"
 )
 
 type Session struct {
-	ID         uuid.UUID `db:"id"`
-	UserID     uuid.UUID `db:"user_id"`
-	TokenHash  string    `db:"token_hash"`
-	DeviceInfo string    `db:"device_info"`
+	bun.BaseModel `bun:"table:user_sessions,alias:s"`
 
-	IPAddress     netip.Addr `db:"ip_address"`
-	LastIPAddress netip.Addr `db:"last_ip_address"`
+	ID         uuid.UUID `bun:"id"`
+	UserID     uuid.UUID `bun:"user_id"`
+	TokenHash  string    `bun:"token_hash"`
+	DeviceInfo string    `bun:"device_info"`
 
-	ExpiresAt time.Time `db:"expires_at"`
-	CreatedAt time.Time `db:"created_at"`
+	IPAddress     netip.Addr `bun:"ip_address"`
+	LastIPAddress netip.Addr `bun:"last_ip_address"`
+
+	ExpiresAt time.Time `bun:"expires_at"`
+	CreatedAt time.Time `bun:"created_at"`
 }

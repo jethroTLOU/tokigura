@@ -8,25 +8,23 @@ import (
 	"go.uber.org/fx"
 )
 
-func startCleanupWorker(lc fx.Lifecycle, s *Service, logger *slog.Logger) {
+func startCleanupWorker(lc fx.Lifecycle, s *Service) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
-			logger.Info("Starting session cleanup worker...")
+			slog.Info("Starting session cleanup worker...")
 
 			go func() {
 				ticker := time.NewTicker(24 * time.Hour)
 				defer ticker.Stop()
 
+				deleteExpired(ctx, s)
+
 				for {
 					select {
 					case <-ticker.C:
-						if err := s.DeleteExpired(ctx); err != nil {
-							logger.Error("Failed to clean up expired sessions", "error", err)
-						} else {
-							logger.Debug("Successfully cleaned up expired sessions")
-						}
+						deleteExpired(ctx, s)
 					case <-ctx.Done():
 						return
 					}
@@ -35,9 +33,17 @@ func startCleanupWorker(lc fx.Lifecycle, s *Service, logger *slog.Logger) {
 			return nil
 		},
 		OnStop: func(_ context.Context) error {
-			logger.Info("Stopping session cleanup worker...")
+			slog.Info("Stopping session cleanup worker...")
 			cancel()
 			return nil
 		},
 	})
+}
+
+func deleteExpired(ctx context.Context, s *Service) {
+	if err := s.DeleteExpired(ctx); err != nil {
+		slog.Error("Failed to clean up expired sessions", "error", err)
+	} else {
+		slog.Debug("Successfully cleaned up expired sessions")
+	}
 }

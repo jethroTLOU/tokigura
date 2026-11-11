@@ -9,14 +9,8 @@ import (
 )
 
 var Module = fx.Module("auth", fx.Provide(
-	func(s *session.Service) sessions {
-		return s
-	},
-	func(s *user.Service) userService {
-		return s
-	},
-	func(s *jwt.Service) tokenParser {
-		return s
+	func(s *session.Service, u *user.Service, j *jwt.Service) (sessions, userService, tokenParser) {
+		return s, u, j
 	},
 	fx.Annotate(
 		NewService,

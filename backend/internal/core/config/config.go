@@ -31,7 +31,7 @@ type Config struct {
 	UploadsDir string     `json:"uploadsDir"`
 }
 
-var defaultCors = []string{"*"}
+var defaultCors = []string{"http://localhost:5173", "http://127.0.0.1:5173"}
 
 const (
 	defaultPort                 = 6969

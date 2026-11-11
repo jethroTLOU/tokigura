@@ -28,7 +28,7 @@ func New(lc fx.Lifecycle, cfg Config) (*bun.DB, error) {
 		return nil, err
 	}
 
-	sqldb.SetMaxOpenConns(50)
+	sqldb.SetMaxOpenConns(1)
 	sqldb.SetMaxIdleConns(10)
 	sqldb.SetConnMaxLifetime(time.Hour)
 

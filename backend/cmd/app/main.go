@@ -23,6 +23,13 @@ func main() {
 		fx.Provide(func(cfg *config.Config) database.Config {
 			return database.Config{DSN: cfg.Database}
 		}),
+		fx.Provide(func(cfg *config.Config) jwt.Config {
+			return jwt.Config{
+				JWTSecret:           cfg.Auth.JWTSecret,
+				AccessTokeDuration:  cfg.Auth.AccessTokeDuration,
+				RefreshTokeDuration: cfg.Auth.RefreshTokeDuration,
+			}
+		}),
 		fx.Provide(func(cfg *config.Config) *server.Config {
 			return &server.Config{
 				Port:         fmt.Sprintf(":%d", cfg.Server.Port),

@@ -1,6 +1,5 @@
 package jwt
 
-// TODO: много чего делать
 import (
 	"crypto/rand"
 	"encoding/hex"
@@ -8,9 +7,14 @@ import (
 	"time"
 	"uuid"
 
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/jethroTLOU/tokigura/internal/core/config"
+	goJwt "github.com/golang-jwt/jwt/v5"
 )
+
+type Config struct {
+	JWTSecret           string
+	AccessTokeDuration  int
+	RefreshTokeDuration int
+}
 
 type Service struct {
 	secret               []byte
@@ -18,11 +22,11 @@ type Service struct {
 	refreshTokenDuration int
 }
 
-func NewService(cfg *config.Config) *Service {
+func NewService(cfg Config) *Service {
 	return &Service{
-		secret:               []byte(cfg.Auth.JWTSecret),
-		accessTokenDuration:  cfg.Auth.AccessTokeDuration,
-		refreshTokenDuration: cfg.Auth.RefreshTokeDuration,
+		secret:               []byte(cfg.JWTSecret),
+		accessTokenDuration:  cfg.AccessTokeDuration,
+		refreshTokenDuration: cfg.RefreshTokeDuration,
 	}
 }
 
@@ -57,22 +61,22 @@ func (s *Service) GenerateAccessToken(userID uuid.UUID, role string) (string, er
 	claims := Claims{
 		UserID: userID.String(),
 		Role:   role,
-		ExpiresAt: jwt.NewNumericDate(
+		ExpiresAt: goJwt.NewNumericDate(
 			time.Now().Add(time.Duration(s.accessTokenDuration) * time.Minute),
 		),
-		IssuedAt: jwt.NewNumericDate(time.Now()),
+		IssuedAt: goJwt.NewNumericDate(time.Now()),
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := goJwt.NewWithClaims(goJwt.SigningMethodHS256, claims)
 	return token.SignedString(s.secret)
 }
 
 func (s *Service) Parse(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(
+	token, err := goJwt.ParseWithClaims(
 		tokenString,
 		&Claims{},
-		func(token *jwt.Token) (any, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		func(token *goJwt.Token) (any, error) {
+			if _, ok := token.Method.(*goJwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 			return s.secret, nil

@@ -135,6 +135,8 @@ func (h *Handler) login(ctx fiber.Ctx) error {
 		HTTPOnly: true,
 		Secure:   h.config.Auth.SecureCookies,
 		Expires:  tokens.RefreshExpiresAt,
+		SameSite: fiber.CookieSameSiteLaxMode,
+		Path:     "/api/auth",
 	})
 
 	return ctx.JSON(&fiber.Map{
@@ -210,6 +212,7 @@ func (h *Handler) logout(ctx fiber.Ctx) error {
 		HTTPOnly: true,
 		Secure:   h.config.Auth.SecureCookies,
 		Expires:  time.Now().Add(-1 * time.Hour),
+		MaxAge:   -1,
 	})
 
 	return ctx.JSON(fiber.Map{

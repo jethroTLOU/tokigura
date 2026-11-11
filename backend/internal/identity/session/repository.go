@@ -8,6 +8,7 @@ import (
 	"time"
 	"uuid"
 
+	"github.com/jethroTLOU/tokigura/internal/core/apperr"
 	"github.com/uptrace/bun"
 	"go.uber.org/fx"
 )
@@ -88,7 +89,7 @@ func (r *Repository) UpdateRotated(ctx context.Context, params UpdateRotatedPara
 		return err
 	}
 	if rows == 0 {
-		return nil
+		return apperr.New(apperr.CodeUnauthorized, "session not found or expired")
 	}
 
 	return nil

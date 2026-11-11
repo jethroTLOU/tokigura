@@ -25,9 +25,9 @@ func main() {
 		}),
 		fx.Provide(func(cfg *config.Config) jwt.Config {
 			return jwt.Config{
-				JWTSecret:           cfg.Auth.JWTSecret,
-				AccessTokeDuration:  cfg.Auth.AccessTokeDuration,
-				RefreshTokeDuration: cfg.Auth.RefreshTokeDuration,
+				JWTSecret:            cfg.Auth.JWTSecret,
+				AccessTokenDuration:  cfg.Auth.AccessTokenDuration,
+				RefreshTokenDuration: cfg.Auth.RefreshTokenDuration,
 			}
 		}),
 		fx.Provide(func(cfg *config.Config) *server.Config {

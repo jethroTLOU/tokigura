@@ -12,10 +12,10 @@ import (
 )
 
 type authCfg struct {
-	JWTSecret           string `json:"jwtSecret"`
-	SecureCookies       bool   `json:"secureCookies"`
-	AccessTokeDuration  int    `json:"accessTokeDuration"`
-	RefreshTokeDuration int    `json:"refreshTokeDuration"`
+	JWTSecret            string `json:"jwtSecret"`
+	SecureCookies        bool   `json:"secureCookies"`
+	AccessTokenDuration  int    `json:"accessTokenDuration"`
+	RefreshTokenDuration int    `json:"refreshTokenDuration"`
 }
 
 type serverCfg struct {
@@ -104,10 +104,10 @@ func createDefaultConfig(configPath, dbPath, uploadsDir string) (*Config, error)
 			AllowOrigins: defaultCors,
 		},
 		Auth: &authCfg{
-			JWTSecret:           generateRandomString(),
-			SecureCookies:       false,
-			AccessTokeDuration:  defaultAccessTokenDuration,
-			RefreshTokeDuration: defaultRefreshTokenDuration,
+			JWTSecret:            generateRandomString(),
+			SecureCookies:        false,
+			AccessTokenDuration:  defaultAccessTokenDuration,
+			RefreshTokenDuration: defaultRefreshTokenDuration,
 		},
 	}
 

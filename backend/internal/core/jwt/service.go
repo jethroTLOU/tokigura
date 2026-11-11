@@ -11,9 +11,9 @@ import (
 )
 
 type Config struct {
-	JWTSecret           string
-	AccessTokeDuration  int
-	RefreshTokeDuration int
+	JWTSecret            string
+	AccessTokenDuration  int
+	RefreshTokenDuration int
 }
 
 type Service struct {
@@ -25,8 +25,8 @@ type Service struct {
 func NewService(cfg Config) *Service {
 	return &Service{
 		secret:               []byte(cfg.JWTSecret),
-		accessTokenDuration:  cfg.AccessTokeDuration,
-		refreshTokenDuration: cfg.RefreshTokeDuration,
+		accessTokenDuration:  cfg.AccessTokenDuration,
+		refreshTokenDuration: cfg.RefreshTokenDuration,
 	}
 }
 

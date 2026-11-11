@@ -25,35 +25,28 @@ type service interface {
 	Logout(ctx context.Context, refreshToken string) error
 }
 
-type tokenParser interface {
-	Parse(tokenString string) (*jwt.Claims, error)
-}
-
 type Handler struct {
-	validator   *validation.Validator
-	service     service
-	config      *config.Config
-	tokenParser tokenParser
-	authMW      *middleware.AuthMiddleware
+	validator *validation.Validator
+	service   service
+	config    *config.Config
+	authMW    *middleware.AuthMiddleware
 }
 
 type HandlerParams struct {
 	fx.In
 
-	Validator   *validation.Validator
-	Service     service
-	Config      *config.Config
-	TokenParser tokenParser
-	AuthMW      *middleware.AuthMiddleware
+	Validator *validation.Validator
+	Service   service
+	Config    *config.Config
+	AuthMW    *middleware.AuthMiddleware
 }
 
 func NewHandler(params HandlerParams) *Handler {
 	return &Handler{
-		validator:   params.Validator,
-		service:     params.Service,
-		config:      params.Config,
-		tokenParser: params.TokenParser,
-		authMW:      params.AuthMW,
+		validator: params.Validator,
+		service:   params.Service,
+		config:    params.Config,
+		authMW:    params.AuthMW,
 	}
 }
 

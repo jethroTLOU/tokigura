@@ -69,8 +69,6 @@ func (m *AuthMiddleware) RequireRole(allowedRoles ...string) fiber.Handler {
 	}
 }
 
-// --- Типобезопасные хелперы для чтения контекста в любых хэндлерах ---
-
 func GetUserID(ctx fiber.Ctx) (uuid.UUID, bool) {
 	val, ok := ctx.Locals(userIDKey).(uuid.UUID)
 	return val, ok

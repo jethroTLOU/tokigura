@@ -26,7 +26,7 @@ func NewRepository(repo RepositoryParams) *Repository {
 }
 
 func (r *Repository) Create(ctx context.Context, s *Session) error {
-	_, err := r.db.NewInsert().Model(&s).Exec(ctx)
+	_, err := r.db.NewInsert().Model(s).Exec(ctx)
 	return err
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
 	"github.com/jethroTLOU/tokigura/internal/core/validation"
 	"github.com/jethroTLOU/tokigura/internal/identity/user"
+	"github.com/jethroTLOU/tokigura/internal/server/middleware"
 	"go.uber.org/fx"
 )
 
@@ -33,6 +34,7 @@ type Handler struct {
 	service     service
 	config      *config.Config
 	tokenParser tokenParser
+	authMW      *middleware.AuthMiddleware
 }
 
 type HandlerParams struct {
@@ -42,6 +44,7 @@ type HandlerParams struct {
 	Service     service
 	Config      *config.Config
 	TokenParser tokenParser
+	AuthMW      *middleware.AuthMiddleware
 }
 
 func NewHandler(params HandlerParams) *Handler {
@@ -50,6 +53,7 @@ func NewHandler(params HandlerParams) *Handler {
 		service:     params.Service,
 		config:      params.Config,
 		tokenParser: params.TokenParser,
+		authMW:      params.AuthMW,
 	}
 }
 
@@ -73,7 +77,7 @@ func (h *Handler) Register(r fiber.Router) {
 	group.Post("/register", authLimiter, h.register)
 	group.Post("/login", authLimiter, h.login)
 
-	group.Get("/me", h.AuthRequired(), h.getMe)
+	group.Get("/me", h.authMW.Required(), h.getMe)
 	group.Post("/refresh", h.refresh)
 	group.Post("/logout", h.logout)
 }
@@ -139,11 +143,10 @@ func (h *Handler) login(ctx fiber.Ctx) error {
 }
 
 func (h *Handler) getMe(ctx fiber.Ctx) error {
-	userID, ok := ctx.Locals("userId").(uuid.UUID)
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		return apperr.New(apperr.CodeInternal, "failed to parse userID from context")
+		return apperr.New(apperr.CodeInternal, "failed to get user id from context")
 	}
-
 	u, err := h.service.Me(ctx.Context(), userID)
 	if err != nil {
 		return err

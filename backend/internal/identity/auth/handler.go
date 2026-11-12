@@ -91,7 +91,7 @@ func (h *Handler) register(ctx fiber.Ctx) error {
 		return err
 	}
 
-	return nil
+	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "User created successfully"})
 }
 
 func (h *Handler) login(ctx fiber.Ctx) error {

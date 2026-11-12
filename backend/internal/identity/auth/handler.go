@@ -122,15 +122,7 @@ func (h *Handler) login(ctx fiber.Ctx) error {
 		return err
 	}
 
-	ctx.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    tokens.RefreshToken,
-		HTTPOnly: true,
-		Secure:   h.config.Auth.SecureCookies,
-		Expires:  tokens.RefreshExpiresAt,
-		SameSite: fiber.CookieSameSiteLaxMode,
-		Path:     "/api/auth",
-	})
+	h.setRefreshCookie(ctx, tokens.RefreshToken, tokens.RefreshExpiresAt)
 
 	return ctx.JSON(&fiber.Map{
 		"access_token": tokens.AccessToken,
@@ -169,23 +161,11 @@ func (h *Handler) refresh(ctx fiber.Ctx) error {
 
 	tokens, err := h.service.Refresh(ctx.Context(), refreshToken, ip)
 	if err != nil {
-		ctx.Cookie(&fiber.Cookie{
-			Name:     "refresh_token",
-			Value:    "",
-			HTTPOnly: true,
-			Secure:   h.config.Auth.SecureCookies,
-			Expires:  time.Now().Add(-1 * time.Hour),
-		})
+		h.clearRefreshCookie(ctx)
 		return err
 	}
 
-	ctx.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    tokens.RefreshToken,
-		HTTPOnly: true,
-		Secure:   h.config.Auth.SecureCookies,
-		Expires:  tokens.RefreshExpiresAt,
-	})
+	h.setRefreshCookie(ctx, tokens.RefreshToken, tokens.RefreshExpiresAt)
 
 	return ctx.JSON(&fiber.Map{
 		"access_token": tokens.AccessToken,
@@ -199,16 +179,34 @@ func (h *Handler) logout(ctx fiber.Ctx) error {
 		_ = h.service.Logout(ctx.Context(), refreshToken)
 	}
 
+	h.clearRefreshCookie(ctx)
+
+	return ctx.JSON(fiber.Map{
+		"message": "Successfully logged out",
+	})
+}
+
+func (h *Handler) setRefreshCookie(ctx fiber.Ctx, token string, expires time.Time) {
+	ctx.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    token,
+		HTTPOnly: true,
+		Secure:   h.config.Auth.SecureCookies,
+		SameSite: fiber.CookieSameSiteLaxMode,
+		Path:     "/api/auth",
+		Expires:  expires,
+	})
+}
+
+func (h *Handler) clearRefreshCookie(ctx fiber.Ctx) {
 	ctx.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    "",
 		HTTPOnly: true,
 		Secure:   h.config.Auth.SecureCookies,
+		SameSite: fiber.CookieSameSiteLaxMode,
+		Path:     "/api/auth",
 		Expires:  time.Now().Add(-1 * time.Hour),
 		MaxAge:   -1,
-	})
-
-	return ctx.JSON(fiber.Map{
-		"message": "Successfully logged out",
 	})
 }

@@ -61,7 +61,7 @@ func (h *Handler) Register(r fiber.Router) {
 		},
 		LimitReached: func(ctx fiber.Ctx) error {
 			return apperr.New(
-				apperr.CodeBadRequest,
+				apperr.TooManyRequests,
 				"Too many requests",
 			)
 		},

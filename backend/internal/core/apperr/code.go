@@ -9,4 +9,5 @@ const (
 	CodeUnauthorized     ErrorCode = "unauthorized"
 	CodeInternal         ErrorCode = "internal_error"
 	CodeBadRequest       ErrorCode = "bad_request"
+	TooManyRequests      ErrorCode = "too_many_requests"
 )

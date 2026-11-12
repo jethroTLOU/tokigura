@@ -17,6 +17,7 @@ func ErrorHandler() fiber.ErrorHandler {
 		apperr.CodeNotFound:         http.StatusNotFound,
 		apperr.CodeUnauthorized:     http.StatusUnauthorized,
 		apperr.CodeBadRequest:       http.StatusBadRequest,
+		apperr.TooManyRequests:      http.StatusTooManyRequests,
 	}
 
 	return func(ctx fiber.Ctx, e error) error {

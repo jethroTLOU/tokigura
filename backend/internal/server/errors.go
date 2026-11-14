@@ -17,13 +17,13 @@ func ErrorHandler() fiber.ErrorHandler {
 		apperr.CodeNotFound:         http.StatusNotFound,
 		apperr.CodeUnauthorized:     http.StatusUnauthorized,
 		apperr.CodeBadRequest:       http.StatusBadRequest,
-		apperr.TooManyRequests:      http.StatusTooManyRequests,
+		apperr.CodeTooManyRequests:  http.StatusTooManyRequests,
 	}
 
 	return func(ctx fiber.Ctx, e error) error {
 		status := http.StatusInternalServerError
 
-		if err, ok := errors.AsType[*apperr.InternalError](e); ok {
+		if err, ok := errors.AsType[*apperr.AppError](e); ok {
 			if mappedStatus, exists := errorMap[err.Code]; exists {
 				status = mappedStatus
 			} else {

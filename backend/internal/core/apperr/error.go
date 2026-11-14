@@ -2,55 +2,55 @@ package apperr
 
 import "fmt"
 
-type InternalError struct {
+type AppError struct {
 	Code    ErrorCode
 	Message string
 	Details map[string]any
 	Err     error
 }
 
-func NewValidation(details map[string]any) *InternalError {
-	return &InternalError{
+func New(code ErrorCode, message string) *AppError {
+	return &AppError{
+		Code:    code,
+		Message: message,
+	}
+}
+
+func Wrap(err error, code ErrorCode, message string) *AppError {
+	return &AppError{
+		Code:    code,
+		Message: message,
+		Err:     err,
+	}
+}
+
+func NewValidation(details map[string]any) *AppError {
+	return &AppError{
 		Code:    CodeValidationFailed,
 		Message: "Validation error.",
 		Details: details,
 	}
 }
 
-func NewBindError(err error) *InternalError {
+func NewBindError(err error) *AppError {
 	return Wrap(err, CodeBadRequest, "Invalid request format. Please check the submitted data.")
 }
 
-func (e *InternalError) Error() string {
+func (e *AppError) Error() string {
 	if e.Err != nil {
 		return fmt.Sprintf("%s: %v", e.Message, e.Err)
 	}
 	return e.Message
 }
 
-func (e *InternalError) Unwrap() error {
+func (e *AppError) Unwrap() error {
 	return e.Err
 }
 
-func New(code ErrorCode, message string) *InternalError {
-	return &InternalError{
-		Code:    code,
-		Message: message,
-	}
-}
-
-func (e *InternalError) With(key, val string) *InternalError {
+func (e *AppError) With(key string, val any) *AppError {
 	if e.Details == nil {
 		e.Details = make(map[string]any)
 	}
 	e.Details[key] = val
 	return e
-}
-
-func Wrap(err error, code ErrorCode, message string) *InternalError {
-	return &InternalError{
-		Code:    code,
-		Message: message,
-		Err:     err,
-	}
 }

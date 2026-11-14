@@ -90,7 +90,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	ip, err := server.ExtractIP(r)
+	ip, err := middleware.ExtractIP(r)
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) error {
 		return apperr.New(apperr.CodeUnauthorized, "missing refresh token")
 	}
 
-	ip, err := server.ExtractIP(r)
+	ip, err := middleware.ExtractIP(r)
 	if err != nil {
 		return err
 	}

@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"net"
 	"net/http"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -16,24 +16,48 @@ type visitor struct {
 
 func RateLimit(maxRequests int, window time.Duration) func(http.Handler) http.Handler {
 	var (
-		mu       sync.Mutex
-		visitors = make(map[string]*visitor)
+		mu          sync.Mutex
+		visitors    = make(map[netip.Addr]*visitor)
+		lastCleanup = time.Now()
 	)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			ip, err := ExtractIP(r)
 			if err != nil {
-				ip = r.RemoteAddr
+				writeAuthError(
+					w,
+					http.StatusBadRequest,
+					apperr.CodeBadRequest,
+					"invalid IP address",
+				)
+				return
 			}
 
 			now := time.Now()
+
 			mu.Lock()
+
+			if now.Sub(lastCleanup) >= window {
+				for addr, v := range visitors {
+					if now.After(v.expiresAt) {
+						delete(visitors, addr)
+					}
+				}
+
+				lastCleanup = now
+			}
+
 			v, exists := visitors[ip]
 			if !exists || now.After(v.expiresAt) {
-				visitors[ip] = &visitor{count: 1, expiresAt: now.Add(window)}
+				visitors[ip] = &visitor{
+					count:     1,
+					expiresAt: now.Add(window),
+				}
+
 				mu.Unlock()
 				next.ServeHTTP(w, r)
+
 				return
 			}
 
@@ -45,11 +69,13 @@ func RateLimit(maxRequests int, window time.Duration) func(http.Handler) http.Ha
 					apperr.CodeTooManyRequests,
 					"Too many requests",
 				)
+
 				return
 			}
 
 			v.count++
 			mu.Unlock()
+
 			next.ServeHTTP(w, r)
 		})
 	}

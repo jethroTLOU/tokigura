@@ -2,9 +2,7 @@ package server
 
 import (
 	"encoding/json"
-	"net"
 	"net/http"
-	"net/netip"
 
 	"github.com/jethroTLOU/tokigura/internal/core/apperr"
 )
@@ -28,18 +26,4 @@ func ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 	}
 
 	return nil
-}
-
-func ExtractIP(r *http.Request) (netip.Addr, error) {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		host = r.RemoteAddr
-	}
-
-	ip, err := netip.ParseAddr(host)
-	if err != nil {
-		return netip.Addr{}, apperr.New(apperr.CodeBadRequest, "invalid IP address")
-	}
-
-	return ip.WithZone(""), nil
 }

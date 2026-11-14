@@ -10,7 +10,7 @@ run:
 	GO_DEV=1 go run $(MAIN_PATH)
 
 build:
-	go build -o $(BIN_NAME) $(MAIN_PATH)
+	go build -ldflags="-s -w" -trimpath -o $(BIN_NAME) $(MAIN_PATH)
 	@echo "Build complete: $(BIN_NAME)"
 
 test:

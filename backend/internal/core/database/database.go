@@ -72,14 +72,14 @@ func (d *DB) WithTx(ctx context.Context, fn func(ctx context.Context) error) err
 	})
 }
 
-func RunMigrations(db *bun.DB) error {
+func RunMigrations(db *DB) error {
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect("sqlite"); err != nil {
 		return err
 	}
 
-	currentVer, err := goose.GetDBVersion(db.DB)
+	currentVer, err := goose.GetDBVersion(db.DB.DB)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func RunMigrations(db *bun.DB) error {
 		slog.Debug("Available migration", "version", m.Version, "source", m.Source)
 	}
 
-	if err := goose.Up(db.DB, "migrations"); err != nil {
+	if err := goose.Up(db.DB.DB, "migrations"); err != nil {
 		return err
 	}
 

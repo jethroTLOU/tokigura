@@ -75,10 +75,10 @@ func (r *Repository) DeleteExpired(ctx context.Context) error {
 func (r *Repository) UpdateRotated(ctx context.Context, params UpdateRotatedParams) error {
 	res, err := r.db.NewUpdate().
 		Model((*Session)(nil)).
-		Set("token_hash = ?", params.Hash).
+		Set("token_hash = ?", params.NewHash).
 		Set("last_ip_address = ?", params.IP).
 		Set("expires_at = ?", params.ExpiresAt).
-		Where("id = ?", params.ID).
+		Where("id = ? AND token_hash = ?", params.ID, params.OldHash).
 		Exec(ctx)
 	if err != nil {
 		return err

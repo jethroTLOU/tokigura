@@ -15,9 +15,17 @@ type CreateSessionDTO struct {
 	UserAgent string
 }
 
+type RotateSessionDTO struct {
+	SessionID uuid.UUID
+	UserID    uuid.UUID
+	Role      user.Role
+	OldHash   string
+	IP        netip.Addr
+}
 type UpdateRotatedParams struct {
 	ID        uuid.UUID
-	Hash      string
+	OldHash   string
+	NewHash   string
 	IP        netip.Addr
 	ExpiresAt time.Time
 }

@@ -24,12 +24,7 @@ type sessions interface {
 	Create(ctx context.Context, dto session.CreateSessionDTO) (*jwt.TokenPair, error)
 	GetSessionByToken(ctx context.Context, refreshToken string) (*session.Session, error)
 	DeleteByToken(ctx context.Context, refreshToken string) error
-	RotateSession(
-		ctx context.Context,
-		sessionID, userID uuid.UUID,
-		role user.Role,
-		ip netip.Addr,
-	) (*jwt.TokenPair, error)
+	RotateSession(ctx context.Context, dto session.RotateSessionDTO) (*jwt.TokenPair, error)
 }
 
 type Service struct {
@@ -117,7 +112,13 @@ func (s *Service) Refresh(
 		return nil, apperr.New(apperr.CodeUnauthorized, "user not found")
 	}
 
-	return s.sessions.RotateSession(ctx, sess.ID, u.ID, u.Role, ip)
+	return s.sessions.RotateSession(ctx, session.RotateSessionDTO{
+		SessionID: sess.ID,
+		UserID:    u.ID,
+		Role:      u.Role,
+		IP:        ip,
+		OldHash:   sess.TokenHash,
+	})
 }
 
 func (s *Service) Logout(ctx context.Context, refreshToken string) error {

@@ -2,11 +2,9 @@ package session
 
 import (
 	"context"
-	"net/netip"
 	"uuid"
 
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
-	"github.com/jethroTLOU/tokigura/internal/identity/user"
 	"github.com/jethroTLOU/tokigura/pkg/cryptoutil"
 )
 
@@ -66,13 +64,8 @@ func (s *Service) DeleteByToken(ctx context.Context, refreshToken string) error 
 	return s.repository.DeleteByTokenHash(ctx, hash)
 }
 
-func (s *Service) RotateSession(
-	ctx context.Context,
-	sessionID, userID uuid.UUID,
-	role user.Role,
-	ip netip.Addr,
-) (*jwt.TokenPair, error) {
-	tokens, err := s.jwtService.GenerateTokenPair(userID, string(role))
+func (s *Service) RotateSession(ctx context.Context, dto RotateSessionDTO) (*jwt.TokenPair, error) {
+	tokens, err := s.jwtService.GenerateTokenPair(dto.UserID, string(dto.Role))
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +73,10 @@ func (s *Service) RotateSession(
 	newHash := cryptoutil.SHA256Hex(tokens.RefreshToken)
 
 	err = s.repository.UpdateRotated(ctx, UpdateRotatedParams{
-		ID:        sessionID,
-		Hash:      newHash,
-		IP:        ip,
+		ID:        dto.SessionID,
+		OldHash:   dto.OldHash,
+		NewHash:   newHash,
+		IP:        dto.IP,
 		ExpiresAt: tokens.RefreshExpiresAt,
 	})
 	if err != nil {

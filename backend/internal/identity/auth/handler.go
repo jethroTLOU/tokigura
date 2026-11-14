@@ -2,17 +2,17 @@ package auth
 
 import (
 	"context"
+	"net/http"
 	"net/netip"
 	"time"
 	"uuid"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/limiter"
 	"github.com/jethroTLOU/tokigura/internal/core/apperr"
 	"github.com/jethroTLOU/tokigura/internal/core/config"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
 	"github.com/jethroTLOU/tokigura/internal/core/validation"
 	"github.com/jethroTLOU/tokigura/internal/identity/user"
+	"github.com/jethroTLOU/tokigura/internal/server"
 	"github.com/jethroTLOU/tokigura/internal/server/middleware"
 	"go.uber.org/fx"
 )
@@ -34,7 +34,6 @@ type Handler struct {
 
 type HandlerParams struct {
 	fx.In
-
 	Validator *validation.Validator
 	Service   service
 	Config    *config.Config
@@ -50,96 +49,82 @@ func NewHandler(params HandlerParams) *Handler {
 	}
 }
 
-func (h *Handler) Register(r fiber.Router) {
-	group := r.Group("/auth")
+func (h *Handler) Register(mux *http.ServeMux) {
+	authLimiter := middleware.RateLimit(5, time.Minute)
 
-	authLimiter := limiter.New(limiter.Config{
-		Max:        5,
-		Expiration: 1 * time.Minute,
-		KeyGenerator: func(ctx fiber.Ctx) string {
-			return ctx.IP()
-		},
-		LimitReached: func(ctx fiber.Ctx) error {
-			return apperr.New(
-				apperr.CodeTooManyRequests,
-				"Too many requests",
-			)
-		},
-	})
-
-	group.Post("/register", authLimiter, h.register)
-	group.Post("/login", authLimiter, h.login)
-
-	group.Get("/me", h.authMW.Required(), h.getMe)
-	group.Post("/refresh", h.refresh)
-	group.Post("/logout", h.logout)
+	mux.Handle("POST /auth/register", authLimiter(server.Wrap(h.register)))
+	mux.Handle("POST /auth/login", authLimiter(server.Wrap(h.login)))
+	mux.Handle("GET /auth/me", h.authMW.Required(server.Wrap(h.getMe)))
+	mux.HandleFunc("POST /auth/refresh", server.Wrap(h.refresh))
+	mux.HandleFunc("POST /auth/logout", server.Wrap(h.logout))
 }
 
-func (h *Handler) register(ctx fiber.Ctx) error {
-	req := RegisterRequest{}
-
-	if err := ctx.Bind().Body(&req); err != nil {
-		return apperr.NewBindError(err)
+func (h *Handler) register(w http.ResponseWriter, r *http.Request) error {
+	var req RegisterRequest
+	if err := server.ReadJSON(w, r, &req); err != nil {
+		return err
 	}
 
 	if err := h.validator.Struct(&req); err != nil {
 		return err
 	}
 
-	err := h.service.Register(ctx.Context(), req)
-	if err != nil {
+	if err := h.service.Register(r.Context(), req); err != nil {
 		return err
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "User created successfully"})
+	return server.WriteJSON(
+		w,
+		http.StatusCreated,
+		server.Map{"message": "User created successfully"},
+	)
 }
 
-func (h *Handler) login(ctx fiber.Ctx) error {
-	req := LoginRequest{}
-
-	if err := ctx.Bind().Body(&req); err != nil {
-		return apperr.NewBindError(err)
+func (h *Handler) login(w http.ResponseWriter, r *http.Request) error {
+	var req LoginRequest
+	if err := server.ReadJSON(w, r, &req); err != nil {
+		return err
 	}
 
 	if err := h.validator.Struct(&req); err != nil {
 		return err
 	}
 
-	ip, err := netip.ParseAddr(ctx.IP())
+	ip, err := server.ExtractIP(r)
 	if err != nil {
-		return apperr.New(apperr.CodeBadRequest, "invalid IP address")
+		return err
 	}
 
 	dto := LoginDTO{
 		Username:  req.Username,
 		Password:  req.Password,
 		IP:        ip,
-		UserAgent: string(ctx.Request().Header.UserAgent()),
+		UserAgent: r.UserAgent(),
 	}
 
-	tokens, err := h.service.Login(ctx.Context(), dto)
+	tokens, err := h.service.Login(r.Context(), dto)
 	if err != nil {
 		return err
 	}
 
-	h.setRefreshCookie(ctx, tokens.RefreshToken, tokens.RefreshExpiresAt)
-
-	return ctx.JSON(&fiber.Map{
+	h.setRefreshCookie(w, tokens.RefreshToken, tokens.RefreshExpiresAt)
+	return server.WriteJSON(w, http.StatusOK, server.Map{
 		"access_token": tokens.AccessToken,
 	})
 }
 
-func (h *Handler) getMe(ctx fiber.Ctx) error {
-	userID, ok := middleware.GetUserID(ctx)
+func (h *Handler) getMe(w http.ResponseWriter, r *http.Request) error {
+	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		return apperr.New(apperr.CodeInternal, "failed to get user id from context")
 	}
-	u, err := h.service.Me(ctx.Context(), userID)
+
+	u, err := h.service.Me(r.Context(), userID)
 	if err != nil {
 		return err
 	}
 
-	return ctx.JSON(&MeResponse{
+	return server.WriteJSON(w, http.StatusOK, &MeResponse{
 		Username: u.Username,
 		ID:       u.ID,
 		Email:    u.Email,
@@ -148,63 +133,59 @@ func (h *Handler) getMe(ctx fiber.Ctx) error {
 	})
 }
 
-func (h *Handler) refresh(ctx fiber.Ctx) error {
-	refreshToken := ctx.Cookies("refresh_token")
-	if refreshToken == "" {
+func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) error {
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil || cookie.Value == "" {
 		return apperr.New(apperr.CodeUnauthorized, "missing refresh token")
 	}
 
-	ip, err := netip.ParseAddr(ctx.IP())
+	ip, err := server.ExtractIP(r)
 	if err != nil {
-		return apperr.New(apperr.CodeBadRequest, "invalid IP address")
-	}
-
-	tokens, err := h.service.Refresh(ctx.Context(), refreshToken, ip)
-	if err != nil {
-		h.clearRefreshCookie(ctx)
 		return err
 	}
 
-	h.setRefreshCookie(ctx, tokens.RefreshToken, tokens.RefreshExpiresAt)
+	tokens, err := h.service.Refresh(r.Context(), cookie.Value, ip)
+	if err != nil {
+		h.clearRefreshCookie(w)
+		return err
+	}
 
-	return ctx.JSON(&fiber.Map{
+	h.setRefreshCookie(w, tokens.RefreshToken, tokens.RefreshExpiresAt)
+	return server.WriteJSON(w, http.StatusOK, server.Map{
 		"access_token": tokens.AccessToken,
 	})
 }
 
-func (h *Handler) logout(ctx fiber.Ctx) error {
-	refreshToken := ctx.Cookies("refresh_token")
-
-	if refreshToken != "" {
-		_ = h.service.Logout(ctx.Context(), refreshToken)
+func (h *Handler) logout(w http.ResponseWriter, r *http.Request) error {
+	if cookie, err := r.Cookie("refresh_token"); err == nil && cookie.Value != "" {
+		_ = h.service.Logout(r.Context(), cookie.Value)
 	}
 
-	h.clearRefreshCookie(ctx)
-
-	return ctx.JSON(fiber.Map{
+	h.clearRefreshCookie(w)
+	return server.WriteJSON(w, http.StatusOK, server.Map{
 		"message": "Successfully logged out",
 	})
 }
 
-func (h *Handler) setRefreshCookie(ctx fiber.Ctx, token string, expires time.Time) {
-	ctx.Cookie(&fiber.Cookie{
+func (h *Handler) setRefreshCookie(w http.ResponseWriter, token string, expires time.Time) {
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec //  Secure flag is configured dynamically
 		Name:     "refresh_token",
 		Value:    token,
-		HTTPOnly: true,
+		HttpOnly: true,
 		Secure:   h.config.Auth.SecureCookies,
-		SameSite: fiber.CookieSameSiteLaxMode,
+		SameSite: http.SameSiteLaxMode,
 		Path:     "/api/auth",
 		Expires:  expires,
 	})
 }
 
-func (h *Handler) clearRefreshCookie(ctx fiber.Ctx) {
-	ctx.Cookie(&fiber.Cookie{
+func (h *Handler) clearRefreshCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec //  Secure flag is configured dynamically
 		Name:     "refresh_token",
 		Value:    "",
-		HTTPOnly: true,
+		HttpOnly: true,
 		Secure:   h.config.Auth.SecureCookies,
-		SameSite: fiber.CookieSameSiteLaxMode,
+		SameSite: http.SameSiteLaxMode,
 		Path:     "/api/auth",
 		Expires:  time.Now().Add(-1 * time.Hour),
 		MaxAge:   -1,

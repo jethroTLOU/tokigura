@@ -1,11 +1,13 @@
 package middleware
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
 	"slices"
 	"strings"
 	"uuid"
 
-	"github.com/gofiber/fiber/v3"
 	"github.com/jethroTLOU/tokigura/internal/core/apperr"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
 )
@@ -14,11 +16,9 @@ type tokenParser interface {
 	Parse(tokenString string) (*jwt.Claims, error)
 }
 
-type contextKey string
-
-const (
-	userIDKey   contextKey = "userId"
-	userRoleKey contextKey = "userRole"
+type (
+	userIDCtxKey   struct{}
+	userRoleCtxKey struct{}
 )
 
 type AuthMiddleware struct {
@@ -29,52 +29,88 @@ func NewAuthMiddleware(tokens *jwt.Service) *AuthMiddleware {
 	return &AuthMiddleware{tokens: tokens}
 }
 
-func (m *AuthMiddleware) Required() fiber.Handler {
-	return func(ctx fiber.Ctx) error {
-		authHeader := ctx.Get("Authorization")
+func (m *AuthMiddleware) Required(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
 		tokenString, ok := strings.CutPrefix(authHeader, "Bearer ")
 		if !ok || tokenString == "" {
-			return apperr.New(apperr.CodeUnauthorized, "missing or invalid authorization header")
+			writeAuthError(
+				w,
+				http.StatusUnauthorized,
+				apperr.CodeUnauthorized,
+				"missing or invalid authorization header",
+			)
+			return
 		}
 
 		claims, err := m.tokens.Parse(tokenString)
 		if err != nil {
-			return apperr.New(apperr.CodeUnauthorized, "invalid or expired token")
+			writeAuthError(
+				w,
+				http.StatusUnauthorized,
+				apperr.CodeUnauthorized,
+				"invalid or expired token",
+			)
+			return
 		}
 
 		userUUID, err := uuid.Parse(claims.UserID)
 		if err != nil {
-			return apperr.New(apperr.CodeUnauthorized, "invalid user id in token payload")
+			writeAuthError(
+				w,
+				http.StatusUnauthorized,
+				apperr.CodeUnauthorized,
+				"invalid user id in token payload",
+			)
+			return
 		}
 
-		ctx.Locals(userIDKey, userUUID)
-		ctx.Locals(userRoleKey, claims.Role)
+		ctx := context.WithValue(r.Context(), userIDCtxKey{}, userUUID)
+		ctx = context.WithValue(ctx, userRoleCtxKey{}, claims.Role)
 
-		return ctx.Next()
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (m *AuthMiddleware) RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			role, ok := GetUserRole(r.Context())
+			if !ok {
+				writeAuthError(w, http.StatusUnauthorized, apperr.CodeUnauthorized, "unauthorized")
+				return
+			}
+
+			if !slices.Contains(allowedRoles, role) {
+				writeAuthError(
+					w,
+					http.StatusForbidden,
+					apperr.CodeForbidden,
+					"insufficient permissions",
+				)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
 	}
 }
 
-func (m *AuthMiddleware) RequireRole(allowedRoles ...string) fiber.Handler {
-	return func(ctx fiber.Ctx) error {
-		role, ok := GetUserRole(ctx)
-		if !ok {
-			return apperr.New(apperr.CodeUnauthorized, "unauthorized")
-		}
-
-		if slices.Contains(allowedRoles, role) {
-			return ctx.Next()
-		}
-
-		return apperr.New(apperr.CodeUnauthorized, "insufficient permissions")
-	}
-}
-
-func GetUserID(ctx fiber.Ctx) (uuid.UUID, bool) {
-	val, ok := ctx.Locals(userIDKey).(uuid.UUID)
+func GetUserID(ctx context.Context) (uuid.UUID, bool) {
+	val, ok := ctx.Value(userIDCtxKey{}).(uuid.UUID)
 	return val, ok
 }
 
-func GetUserRole(ctx fiber.Ctx) (string, bool) {
-	val, ok := ctx.Locals(userRoleKey).(string)
+func GetUserRole(ctx context.Context) (string, bool) {
+	val, ok := ctx.Value(userRoleCtxKey{}).(string)
 	return val, ok
+}
+
+func writeAuthError(w http.ResponseWriter, status int, code apperr.ErrorCode, msg string) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"message": msg,
+		"code":    code,
+	})
 }

@@ -2,11 +2,13 @@ package server
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"net/http"
 	"strings"
+	"time"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/jethroTLOU/tokigura/internal/server/middleware"
 	"go.uber.org/fx"
 )
 
@@ -16,36 +18,41 @@ type Config struct {
 	AppName      string
 }
 
-func NewServer(lc fx.Lifecycle, cfg *Config) *fiber.App {
-	app := fiber.New(fiber.Config{
-		AppName:      cfg.AppName,
-		ErrorHandler: ErrorHandler(),
-	})
+func NewServer(lc fx.Lifecycle, cfg *Config) *http.ServeMux {
+	mux := http.NewServeMux()
 
 	slog.Info("Registering cors", "allowed origins", strings.Join(cfg.AllowOrigins, ", "))
+	handler := middleware.CORS(cfg.AllowOrigins)(mux)
+	handler = middleware.Recover(handler)
 
-	app.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.AllowOrigins,
-		AllowCredentials: true,
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		AllowMethods:     []string{"GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"},
-	}))
+	srv := &http.Server{
+		Addr:              cfg.Port,
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
 
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
-			slog.Info("Starting Fiber server...")
+			slog.Info("Starting HTTP server...", "addr", cfg.Port)
+
 			go func() {
-				if err := app.Listen(cfg.Port); err != nil {
-					slog.Error("Fiber server error", "error", err)
+				if err := srv.ListenAndServe(); err != nil &&
+					!errors.Is(err, http.ErrServerClosed) {
+					slog.Error("HTTP server error", "error", err)
 				}
 			}()
+
 			return nil
 		},
-		OnStop: func(_ context.Context) error {
-			slog.Info("Stopping Fiber server...")
-			return app.Shutdown()
+		OnStop: func(ctx context.Context) error {
+			slog.Info("Stopping HTTP server...")
+
+			return srv.Shutdown(ctx)
 		},
 	})
 
-	return app
+	return mux
 }

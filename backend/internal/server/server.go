@@ -18,11 +18,13 @@ type Config struct {
 	AppName      string
 }
 
-func NewServer(lc fx.Lifecycle, cfg *Config) *http.ServeMux {
+func NewServer(lc fx.Lifecycle, cfg Config) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	slog.Info("Registering cors", "allowed origins", strings.Join(cfg.AllowOrigins, ", "))
-	handler := middleware.CORS(cfg.AllowOrigins)(mux)
+
+	handler := middleware.RealIP(mux)
+	handler = middleware.CORS(cfg.AllowOrigins)(mux)
 	handler = middleware.Recover(handler)
 
 	srv := &http.Server{

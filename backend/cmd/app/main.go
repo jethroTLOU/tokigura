@@ -13,30 +13,21 @@ import (
 	"github.com/jethroTLOU/tokigura/internal/identity/user"
 	"github.com/jethroTLOU/tokigura/internal/server"
 	"go.uber.org/fx"
-	_ "modernc.org/sqlite"
 )
+
+type moduleConfigs struct {
+	fx.Out
+
+	Server   server.Config
+	Database database.Config
+	Jwt      jwt.Config
+}
 
 func main() {
 	app := fx.New(
 		logger.Module,
 		config.Module,
-		fx.Provide(func(cfg *config.Config) database.Config {
-			return database.Config{DSN: cfg.Database}
-		}),
-		fx.Provide(func(cfg *config.Config) jwt.Config {
-			return jwt.Config{
-				JWTSecret:            cfg.Auth.JWTSecret,
-				AccessTokenDuration:  cfg.Auth.AccessTokenDuration,
-				RefreshTokenDuration: cfg.Auth.RefreshTokenDuration,
-			}
-		}),
-		fx.Provide(func(cfg *config.Config) *server.Config {
-			return &server.Config{
-				Port:         fmt.Sprintf(":%d", cfg.Server.Port),
-				AppName:      config.GetAppName(),
-				AllowOrigins: cfg.Server.AllowOrigins,
-			}
-		}),
+		fx.Provide(provideModuleConfigs),
 		server.Module,
 		database.Module,
 		jwt.Module,
@@ -47,4 +38,22 @@ func main() {
 	)
 
 	app.Run()
+}
+
+func provideModuleConfigs(cfg *config.Config) moduleConfigs {
+	return moduleConfigs{
+		Server: server.Config{
+			Port:         fmt.Sprintf(":%d", cfg.Server.Port),
+			AppName:      config.GetAppName(),
+			AllowOrigins: cfg.Server.AllowOrigins,
+		},
+		Jwt: jwt.Config{
+			JWTSecret:            cfg.Auth.JWTSecret,
+			AccessTokenDuration:  cfg.Auth.AccessTokenDuration,
+			RefreshTokenDuration: cfg.Auth.RefreshTokenDuration,
+		},
+		Database: database.Config{
+			DSN: cfg.Database,
+		},
+	}
 }

@@ -4,7 +4,7 @@ import (
 	"net/netip"
 	"uuid"
 
-	"github.com/jethroTLOU/tokigura/internal/identity/user"
+	"github.com/jethroTLOU/tokigura/internal/core/domain"
 )
 
 type RegisterRequest struct {
@@ -26,9 +26,9 @@ type LoginDTO struct {
 }
 
 type MeResponse struct {
-	ID       uuid.UUID `json:"id"`
-	Username string    `json:"username"`
-	Role     user.Role `json:"role"`
-	Email    string    `json:"email"`
-	Avatar   *string   `json:"avatar"`
+	ID       uuid.UUID   `json:"id"`
+	Username string      `json:"username"`
+	Role     domain.Role `json:"role"`
+	Email    string      `json:"email"`
+	Avatar   *string     `json:"avatar"`
 }

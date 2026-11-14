@@ -2,12 +2,14 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"net/netip"
 	"strings"
 	"time"
 	"uuid"
 
 	"github.com/jethroTLOU/tokigura/internal/core/apperr"
+	"github.com/jethroTLOU/tokigura/internal/core/domain"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
 	"github.com/jethroTLOU/tokigura/internal/identity/session"
 	"github.com/jethroTLOU/tokigura/internal/identity/user"
@@ -50,24 +52,23 @@ func (s *Service) Register(ctx context.Context, dto RegisterRequest) error {
 		Email:    strings.ToLower(dto.Email),
 		Username: strings.ToLower(dto.Username),
 		Password: string(hashedPassword),
-		Role:     user.UserRole,
+		Role:     domain.RoleUser,
 	}
 
-	if err := s.users.Create(ctx, newUser); err != nil {
-		return apperr.Wrap(err, apperr.CodeConflict, "username or email already exists")
-	}
-
-	return nil
+	return s.users.Create(ctx, newUser)
 }
 
 func (s *Service) Login(ctx context.Context, dto LoginDTO) (*jwt.TokenPair, error) {
 	u, err := s.users.FindByUsername(ctx, strings.ToLower(dto.Username))
 	if err != nil {
-		return nil, apperr.New(apperr.CodeUnauthorized, "invalid username or password")
+		if errors.Is(err, user.ErrNotFound) {
+			return nil, ErrInvalidCredentials
+		}
+		return nil, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(dto.Password)); err != nil {
-		return nil, apperr.New(apperr.CodeUnauthorized, "invalid username or password")
+		return nil, ErrInvalidCredentials
 	}
 
 	sessionDTO := session.CreateSessionDTO{
@@ -81,12 +82,7 @@ func (s *Service) Login(ctx context.Context, dto LoginDTO) (*jwt.TokenPair, erro
 }
 
 func (s *Service) Me(ctx context.Context, userID uuid.UUID) (*user.User, error) {
-	u, err := s.users.FindByID(ctx, userID)
-	if err != nil {
-		return nil, apperr.New(apperr.CodeNotFound, "user not found")
-	}
-
-	return u, nil
+	return s.users.FindByID(ctx, userID)
 }
 
 func (s *Service) Refresh(
@@ -98,18 +94,18 @@ func (s *Service) Refresh(
 	if err != nil {
 		return nil, err
 	}
-	if sess == nil {
-		return nil, apperr.New(apperr.CodeUnauthorized, "invalid session")
-	}
 
 	if sess.ExpiresAt.Before(time.Now()) {
 		_ = s.sessions.DeleteByToken(ctx, refreshToken)
-		return nil, apperr.New(apperr.CodeUnauthorized, "session expired")
+		return nil, ErrSessionExpired
 	}
 
 	u, err := s.users.FindByID(ctx, sess.UserID)
 	if err != nil {
-		return nil, apperr.New(apperr.CodeUnauthorized, "user not found")
+		if errors.Is(err, user.ErrNotFound) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
 	}
 
 	return s.sessions.RotateSession(ctx, session.RotateSessionDTO{

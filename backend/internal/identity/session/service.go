@@ -4,6 +4,7 @@ import (
 	"context"
 	"uuid"
 
+	"github.com/jethroTLOU/tokigura/internal/core/domain"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
 	"github.com/jethroTLOU/tokigura/pkg/cryptoutil"
 )
@@ -16,7 +17,7 @@ type repository interface {
 	DeleteExpired(ctx context.Context) error
 }
 type jwtService interface {
-	GenerateTokenPair(userID uuid.UUID, role string) (*jwt.TokenPair, error)
+	GenerateTokenPair(userID uuid.UUID, role domain.Role) (*jwt.TokenPair, error)
 }
 
 type Service struct {
@@ -32,7 +33,7 @@ func NewService(repo repository, jwtSvc jwtService) *Service {
 }
 
 func (s *Service) Create(ctx context.Context, dto CreateSessionDTO) (*jwt.TokenPair, error) {
-	tokens, err := s.jwtService.GenerateTokenPair(dto.UserID, string(dto.Role))
+	tokens, err := s.jwtService.GenerateTokenPair(dto.UserID, dto.Role)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func (s *Service) DeleteByToken(ctx context.Context, refreshToken string) error 
 }
 
 func (s *Service) RotateSession(ctx context.Context, dto RotateSessionDTO) (*jwt.TokenPair, error) {
-	tokens, err := s.jwtService.GenerateTokenPair(dto.UserID, string(dto.Role))
+	tokens, err := s.jwtService.GenerateTokenPair(dto.UserID, dto.Role)
 	if err != nil {
 		return nil, err
 	}

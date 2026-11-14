@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"embed"
 	"log/slog"
-	"time"
 
 	"github.com/pressly/goose/v3"
 	"github.com/uptrace/bun"
@@ -36,7 +35,7 @@ func New(lc fx.Lifecycle, cfg Config) (*DB, error) {
 
 	sqldb.SetMaxOpenConns(1)
 	sqldb.SetMaxIdleConns(1)
-	sqldb.SetConnMaxLifetime(time.Hour)
+	sqldb.SetConnMaxLifetime(0)
 
 	if err := sqldb.PingContext(context.Background()); err != nil {
 		slog.Error("Failed to ping SQLite", "error", err)

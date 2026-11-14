@@ -1,6 +1,10 @@
 package apperr
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"maps"
+)
 
 type AppError struct {
 	Code    ErrorCode
@@ -48,9 +52,24 @@ func (e *AppError) Unwrap() error {
 }
 
 func (e *AppError) With(key string, val any) *AppError {
-	if e.Details == nil {
-		e.Details = make(map[string]any)
+	details := maps.Clone(e.Details)
+	if details == nil {
+		details = make(map[string]any, 1)
 	}
-	e.Details[key] = val
-	return e
+
+	details[key] = val
+
+	return &AppError{
+		Code:    e.Code,
+		Message: e.Message,
+		Details: details,
+		Err:     e.Err,
+	}
+}
+
+func IsCode(err error, code ErrorCode) bool {
+	if appErr, ok := errors.AsType[*AppError](err); ok {
+		return appErr.Code == code
+	}
+	return false
 }

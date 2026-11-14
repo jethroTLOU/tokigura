@@ -8,6 +8,7 @@ import (
 	"uuid"
 
 	goJwt "github.com/golang-jwt/jwt/v5"
+	"github.com/jethroTLOU/tokigura/internal/core/domain"
 )
 
 type Config struct {
@@ -30,7 +31,7 @@ func NewService(cfg Config) *Service {
 	}
 }
 
-func (s *Service) GenerateTokenPair(userID uuid.UUID, role string) (*TokenPair, error) {
+func (s *Service) GenerateTokenPair(userID uuid.UUID, role domain.Role) (*TokenPair, error) {
 	refresh, err := s.GenerateRefreshToken()
 	if err != nil {
 		return nil, err
@@ -57,7 +58,7 @@ func (s *Service) GenerateRefreshToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func (s *Service) GenerateAccessToken(userID uuid.UUID, role string) (string, error) {
+func (s *Service) GenerateAccessToken(userID uuid.UUID, role domain.Role) (string, error) {
 	claims := Claims{
 		UserID: userID.String(),
 		Role:   role,

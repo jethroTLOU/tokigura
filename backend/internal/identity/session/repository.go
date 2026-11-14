@@ -2,13 +2,9 @@ package session
 
 import (
 	"context"
-	"database/sql"
-	_ "embed"
-	"errors"
 	"time"
 	"uuid"
 
-	"github.com/jethroTLOU/tokigura/internal/core/apperr"
 	"github.com/jethroTLOU/tokigura/internal/core/database"
 	"go.uber.org/fx"
 )
@@ -19,7 +15,6 @@ type Repository struct {
 
 type RepositoryParams struct {
 	fx.In
-
 	DB *database.DB
 }
 
@@ -34,19 +29,13 @@ func (r *Repository) Create(ctx context.Context, s *Session) error {
 
 func (r *Repository) GetByTokenHash(ctx context.Context, hash string) (*Session, error) {
 	s := new(Session)
-
-	if err := r.db.Conn(ctx).
-		NewSelect().
-		Model(s).
-		Where("token_hash = ?", hash).
-		Scan(ctx); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+	err := r.db.Conn(ctx).NewSelect().Model(s).Where("token_hash = ?", hash).Scan(ctx)
+	if err != nil {
+		if database.IsNotFound(err) {
+			return nil, ErrNotFound
 		}
-
 		return nil, err
 	}
-
 	return s, nil
 }
 
@@ -56,18 +45,15 @@ func (r *Repository) DeleteByTokenHash(ctx context.Context, hash string) error {
 		Model((*Session)(nil)).
 		Where("token_hash = ?", hash).
 		Exec(ctx)
-
 	return err
 }
 
 func (r *Repository) DeleteAllByUserID(ctx context.Context, userID uuid.UUID) error {
-	_, err := r.db.
-		Conn(ctx).
+	_, err := r.db.Conn(ctx).
 		NewDelete().
 		Model((*Session)(nil)).
 		Where("user_id = ?", userID).
 		Exec(ctx)
-
 	return err
 }
 
@@ -77,7 +63,6 @@ func (r *Repository) DeleteExpired(ctx context.Context) error {
 		Model((*Session)(nil)).
 		Where("expires_at < ?", time.Now()).
 		Exec(ctx)
-
 	return err
 }
 
@@ -98,8 +83,9 @@ func (r *Repository) UpdateRotated(ctx context.Context, params UpdateRotatedPara
 	if err != nil {
 		return err
 	}
+
 	if rows == 0 {
-		return apperr.New(apperr.CodeUnauthorized, "session not found or expired")
+		return ErrNotFound
 	}
 
 	return nil

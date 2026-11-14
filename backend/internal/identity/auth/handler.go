@@ -55,8 +55,8 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.Handle("POST /auth/register", authLimiter(server.Wrap(h.register)))
 	mux.Handle("POST /auth/login", authLimiter(server.Wrap(h.login)))
 	mux.Handle("GET /auth/me", h.authMW.Required(server.Wrap(h.getMe)))
-	mux.HandleFunc("POST /auth/refresh", server.Wrap(h.refresh))
-	mux.HandleFunc("POST /auth/logout", server.Wrap(h.logout))
+	mux.Handle("POST /auth/refresh", server.Wrap(h.refresh))
+	mux.Handle("POST /auth/logout", server.Wrap(h.logout))
 }
 
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) error {
@@ -90,10 +90,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	ip, err := middleware.ExtractIP(r)
-	if err != nil {
-		return err
-	}
+	ip, _ := middleware.GetIP(r.Context())
 
 	dto := LoginDTO{
 		Username:  req.Username,
@@ -139,14 +136,12 @@ func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) error {
 		return apperr.New(apperr.CodeUnauthorized, "missing refresh token")
 	}
 
-	ip, err := middleware.ExtractIP(r)
-	if err != nil {
-		return err
-	}
-
+	ip, _ := middleware.GetIP(r.Context())
 	tokens, err := h.service.Refresh(r.Context(), cookie.Value, ip)
 	if err != nil {
-		h.clearRefreshCookie(w)
+		if apperr.IsCode(err, apperr.CodeUnauthorized) {
+			h.clearRefreshCookie(w)
+		}
 		return err
 	}
 

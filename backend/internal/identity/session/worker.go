@@ -10,12 +10,14 @@ import (
 
 func startCleanupWorker(lc fx.Lifecycle, s *Service) {
 	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
 
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			slog.Info("Starting session cleanup worker...")
-
 			go func() {
+				defer close(done)
+
 				ticker := time.NewTicker(24 * time.Hour)
 				defer ticker.Stop()
 
@@ -32,9 +34,15 @@ func startCleanupWorker(lc fx.Lifecycle, s *Service) {
 			}()
 			return nil
 		},
-		OnStop: func(_ context.Context) error {
+		OnStop: func(stopCtx context.Context) error {
 			slog.Info("Stopping session cleanup worker...")
 			cancel()
+
+			select {
+			case <-done:
+			case <-stopCtx.Done():
+				return stopCtx.Err()
+			}
 			return nil
 		},
 	})

@@ -9,6 +9,7 @@ import (
 	"uuid"
 
 	"github.com/jethroTLOU/tokigura/internal/core/apperr"
+	"github.com/jethroTLOU/tokigura/internal/core/domain"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
 )
 
@@ -72,7 +73,7 @@ func (m *AuthMiddleware) Required(next http.Handler) http.Handler {
 	})
 }
 
-func (m *AuthMiddleware) RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
+func (m *AuthMiddleware) RequireRole(allowedRoles ...domain.Role) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			role, ok := GetUserRole(r.Context())
@@ -80,7 +81,6 @@ func (m *AuthMiddleware) RequireRole(allowedRoles ...string) func(http.Handler) 
 				writeAuthError(w, http.StatusUnauthorized, apperr.CodeUnauthorized, "unauthorized")
 				return
 			}
-
 			if !slices.Contains(allowedRoles, role) {
 				writeAuthError(
 					w,
@@ -90,7 +90,6 @@ func (m *AuthMiddleware) RequireRole(allowedRoles ...string) func(http.Handler) 
 				)
 				return
 			}
-
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -101,8 +100,8 @@ func GetUserID(ctx context.Context) (uuid.UUID, bool) {
 	return val, ok
 }
 
-func GetUserRole(ctx context.Context) (string, bool) {
-	val, ok := ctx.Value(userRoleCtxKey{}).(string)
+func GetUserRole(ctx context.Context) (domain.Role, bool) {
+	val, ok := ctx.Value(userRoleCtxKey{}).(domain.Role)
 	return val, ok
 }
 

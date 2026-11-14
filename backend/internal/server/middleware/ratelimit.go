@@ -23,16 +23,7 @@ func RateLimit(maxRequests int, window time.Duration) func(http.Handler) http.Ha
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip, err := ExtractIP(r)
-			if err != nil {
-				writeAuthError(
-					w,
-					http.StatusBadRequest,
-					apperr.CodeBadRequest,
-					"invalid IP address",
-				)
-				return
-			}
+			ip, _ := GetIP(r.Context())
 
 			now := time.Now()
 

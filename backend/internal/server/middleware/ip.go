@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/netip"
@@ -8,6 +9,25 @@ import (
 
 	"github.com/jethroTLOU/tokigura/internal/core/apperr"
 )
+
+type ipCtxKey struct{}
+
+func RealIP(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip, err := ExtractIP(r)
+		if err != nil {
+			writeAuthError(w, http.StatusBadRequest, apperr.CodeBadRequest, "invalid IP address")
+			return
+		}
+		ctx := context.WithValue(r.Context(), ipCtxKey{}, ip)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func GetIP(ctx context.Context) (netip.Addr, bool) {
+	val, ok := ctx.Value(ipCtxKey{}).(netip.Addr)
+	return val, ok
+}
 
 func ExtractIP(r *http.Request) (netip.Addr, error) {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)

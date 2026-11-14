@@ -61,7 +61,7 @@ func (s *Service) Register(ctx context.Context, dto RegisterRequest) error {
 }
 
 func (s *Service) Login(ctx context.Context, dto LoginDTO) (*jwt.TokenPair, error) {
-	u, err := s.users.FindByUsername(ctx, dto.Username)
+	u, err := s.users.FindByUsername(ctx, strings.ToLower(dto.Username))
 	if err != nil {
 		return nil, apperr.New(apperr.CodeUnauthorized, "invalid username or password")
 	}

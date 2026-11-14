@@ -5,18 +5,18 @@ import (
 	_ "embed"
 	"uuid"
 
-	"github.com/uptrace/bun"
+	"github.com/jethroTLOU/tokigura/internal/core/database"
 	"go.uber.org/fx"
 )
 
 type Repository struct {
-	db *bun.DB
+	db *database.DB
 }
 
 type RepositoryParams struct {
 	fx.In
 
-	DB *bun.DB
+	DB *database.DB
 }
 
 func NewRepository(repo RepositoryParams) *Repository {
@@ -24,14 +24,18 @@ func NewRepository(repo RepositoryParams) *Repository {
 }
 
 func (r *Repository) Create(ctx context.Context, u *User) error {
-	_, err := r.db.NewInsert().Model(u).Exec(ctx)
+	_, err := r.db.Conn(ctx).NewInsert().Model(u).Exec(ctx)
 	return err
 }
 
 func (r *Repository) FindByUsername(ctx context.Context, username string) (*User, error) {
 	u := new(User)
 
-	if err := r.db.NewSelect().Model(u).Where("username = ?", username).Scan(ctx); err != nil {
+	if err := r.db.Conn(ctx).
+		NewSelect().
+		Model(u).
+		Where("username = ?", username).
+		Scan(ctx); err != nil {
 		return nil, err
 	}
 
@@ -41,7 +45,7 @@ func (r *Repository) FindByUsername(ctx context.Context, username string) (*User
 func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*User, error) {
 	u := new(User)
 
-	if err := r.db.NewSelect().Model(u).Where("id = ?", id).Scan(ctx); err != nil {
+	if err := r.db.Conn(ctx).NewSelect().Model(u).Where("id = ?", id).Scan(ctx); err != nil {
 		return nil, err
 	}
 

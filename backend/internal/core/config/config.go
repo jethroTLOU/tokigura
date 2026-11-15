@@ -24,11 +24,11 @@ type serverCfg struct {
 }
 
 type Config struct {
-	Auth       *authCfg   `json:"auth"`
-	Server     *serverCfg `json:"server"`
-	Database   string     `json:"database"`
-	Debug      bool       `json:"debug"`
-	UploadsDir string     `json:"uploadsDir"`
+	Auth       authCfg   `json:"auth"`
+	Server     serverCfg `json:"server"`
+	Database   string    `json:"database"`
+	Debug      bool      `json:"debug"`
+	UploadsDir string    `json:"uploadsDir"`
 }
 
 var defaultCors = []string{"http://localhost:5173", "http://127.0.0.1:5173"}
@@ -99,11 +99,11 @@ func createDefaultConfig(configPath, dbPath, uploadsDir string) (*Config, error)
 		Database:   dsn,
 		Debug:      false,
 		UploadsDir: uploadsDir,
-		Server: &serverCfg{
+		Server: serverCfg{
 			Port:         defaultPort,
 			AllowOrigins: defaultCors,
 		},
-		Auth: &authCfg{
+		Auth: authCfg{
 			JWTSecret:            generateRandomString(),
 			SecureCookies:        false,
 			AccessTokenDuration:  defaultAccessTokenDuration,

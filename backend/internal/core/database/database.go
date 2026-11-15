@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"io/fs"
 	"log/slog"
 
 	"github.com/pressly/goose/v3"
@@ -37,22 +38,26 @@ func New(lc fx.Lifecycle, cfg Config) (*DB, error) {
 	sqldb.SetMaxIdleConns(1)
 	sqldb.SetConnMaxLifetime(0)
 
-	if err := sqldb.PingContext(context.Background()); err != nil {
-		slog.Error("Failed to ping SQLite", "error", err)
-		return nil, err
-	}
-
 	bunDB := bun.NewDB(sqldb, sqlitedialect.New())
-	slog.Info("Connected to SQLite successfully", "dsn", cfg.DSN)
+	db := &DB{DB: bunDB}
 
 	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			if err := sqldb.PingContext(ctx); err != nil {
+				slog.Error("Failed to ping SQLite", "error", err)
+				return err
+			}
+			slog.Info("Connected to SQLite successfully", "dsn", cfg.DSN)
+
+			return runMigrations(ctx, sqldb)
+		},
 		OnStop: func(_ context.Context) error {
 			slog.Info("Closing SQLite connection...")
 			return bunDB.Close()
 		},
 	})
 
-	return &DB{DB: bunDB}, nil
+	return db, nil
 }
 
 func (d *DB) Conn(ctx context.Context) bun.IDB {
@@ -71,35 +76,24 @@ func (d *DB) WithTx(ctx context.Context, fn func(ctx context.Context) error) err
 	})
 }
 
-func RunMigrations(db *DB) error {
-	goose.SetBaseFS(embedMigrations)
-
-	if err := goose.SetDialect("sqlite"); err != nil {
-		return err
-	}
-
-	currentVer, err := goose.GetDBVersion(db.DB.DB)
+func runMigrations(ctx context.Context, sqldb *sql.DB) error {
+	migrationsFS, err := fs.Sub(embedMigrations, "migrations")
 	if err != nil {
 		return err
 	}
 
-	migrations, err := goose.CollectMigrations("migrations", 0, goose.MaxVersion)
+	provider, err := goose.NewProvider(goose.DialectSQLite3, sqldb, migrationsFS)
 	if err != nil {
 		return err
 	}
 
-	slog.Debug(
-		"Migration",
-		"current_db_version", currentVer,
-		"files_found_in_embed", len(migrations),
-	)
-
-	for _, m := range migrations {
-		slog.Debug("Available migration", "version", m.Version, "source", m.Source)
+	results, err := provider.Up(ctx)
+	if err != nil {
+		return err
 	}
 
-	if err := goose.Up(db.DB.DB, "migrations"); err != nil {
-		return err
+	for _, r := range results {
+		slog.Info("Applied migration", "version", r.Source.Version, "duration", r.Duration)
 	}
 
 	return nil

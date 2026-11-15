@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/netip"
-	"strings"
 	"time"
 	"uuid"
 
@@ -49,8 +48,8 @@ func (s *Service) Register(ctx context.Context, dto RegisterRequest) error {
 
 	newUser := &user.User{
 		ID:       uuid.NewV7(),
-		Email:    strings.ToLower(dto.Email),
-		Username: strings.ToLower(dto.Username),
+		Email:    dto.Email,
+		Username: dto.Username,
 		Password: string(hashedPassword),
 		Role:     domain.RoleUser,
 	}
@@ -59,7 +58,7 @@ func (s *Service) Register(ctx context.Context, dto RegisterRequest) error {
 }
 
 func (s *Service) Login(ctx context.Context, dto LoginDTO) (*jwt.TokenPair, error) {
-	u, err := s.users.FindByUsername(ctx, strings.ToLower(dto.Username))
+	u, err := s.users.FindByUsername(ctx, dto.Username)
 	if err != nil {
 		if errors.Is(err, user.ErrNotFound) {
 			return nil, ErrInvalidCredentials

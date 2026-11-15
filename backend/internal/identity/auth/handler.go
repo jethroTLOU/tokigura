@@ -10,7 +10,6 @@ import (
 	"github.com/jethroTLOU/tokigura/internal/core/apperr"
 	"github.com/jethroTLOU/tokigura/internal/core/config"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
-	"github.com/jethroTLOU/tokigura/internal/core/validation"
 	"github.com/jethroTLOU/tokigura/internal/identity/user"
 	"github.com/jethroTLOU/tokigura/internal/server"
 	"github.com/jethroTLOU/tokigura/internal/server/middleware"
@@ -26,26 +25,23 @@ type service interface {
 }
 
 type Handler struct {
-	validator *validation.Validator
-	service   service
-	config    *config.Config
-	authMW    *middleware.AuthMiddleware
+	service service
+	config  *config.Config
+	authMW  *middleware.AuthMiddleware
 }
 
 type HandlerParams struct {
 	fx.In
-	Validator *validation.Validator
-	Service   service
-	Config    *config.Config
-	AuthMW    *middleware.AuthMiddleware
+	Service service
+	Config  *config.Config
+	AuthMW  *middleware.AuthMiddleware
 }
 
 func NewHandler(params HandlerParams) *Handler {
 	return &Handler{
-		validator: params.Validator,
-		service:   params.Service,
-		config:    params.Config,
-		authMW:    params.AuthMW,
+		service: params.Service,
+		config:  params.Config,
+		authMW:  params.AuthMW,
 	}
 }
 
@@ -65,7 +61,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if err := h.validator.Struct(&req); err != nil {
+	if err := req.Validate(); err != nil {
 		return err
 	}
 
@@ -86,7 +82,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if err := h.validator.Struct(&req); err != nil {
+	if err := req.Validate(); err != nil {
 		return err
 	}
 

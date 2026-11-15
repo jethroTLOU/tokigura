@@ -7,7 +7,6 @@ import (
 	"github.com/jethroTLOU/tokigura/internal/core/database"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
 	"github.com/jethroTLOU/tokigura/internal/core/logger"
-	"github.com/jethroTLOU/tokigura/internal/core/validation"
 	"github.com/jethroTLOU/tokigura/internal/identity/auth"
 	"github.com/jethroTLOU/tokigura/internal/identity/session"
 	"github.com/jethroTLOU/tokigura/internal/identity/user"
@@ -31,7 +30,6 @@ func main() {
 		server.Module,
 		database.Module,
 		jwt.Module,
-		fx.Provide(validation.New),
 		auth.Module,
 		session.Module,
 		user.Module,

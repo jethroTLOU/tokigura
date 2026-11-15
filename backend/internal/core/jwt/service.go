@@ -32,10 +32,7 @@ func NewService(cfg Config) *Service {
 }
 
 func (s *Service) GenerateTokenPair(userID uuid.UUID, role domain.Role) (*TokenPair, error) {
-	refresh, err := s.GenerateRefreshToken()
-	if err != nil {
-		return nil, err
-	}
+	refresh := s.GenerateRefreshToken()
 
 	access, err := s.GenerateAccessToken(userID, role)
 	if err != nil {
@@ -49,13 +46,10 @@ func (s *Service) GenerateTokenPair(userID uuid.UUID, role domain.Role) (*TokenP
 	}, nil
 }
 
-func (s *Service) GenerateRefreshToken() (string, error) {
+func (s *Service) GenerateRefreshToken() string {
 	b := make([]byte, 32)
-	_, err := rand.Read(b)
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 func (s *Service) GenerateAccessToken(userID uuid.UUID, role domain.Role) (string, error) {

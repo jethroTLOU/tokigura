@@ -82,10 +82,9 @@ func IsDevMode() bool {
 }
 
 func generateRandomString() string {
-	b := make([]byte, randomStringBytes)
-	if _, err := rand.Read(b); err != nil {
-		panic(fmt.Errorf("failed to generate secure random string: %w", err))
-	}
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+
 	return base64.StdEncoding.EncodeToString(b)
 }
 

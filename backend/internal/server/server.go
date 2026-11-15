@@ -24,7 +24,7 @@ func NewServer(lc fx.Lifecycle, cfg Config) *http.ServeMux {
 	slog.Info("Registering cors", "allowed origins", strings.Join(cfg.AllowOrigins, ", "))
 
 	handler := middleware.RealIP(mux)
-	handler = middleware.CORS(cfg.AllowOrigins)(mux)
+	handler = middleware.CORS(cfg.AllowOrigins)(handler)
 	handler = middleware.Recover(handler)
 
 	srv := &http.Server{

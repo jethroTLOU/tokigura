@@ -6,7 +6,6 @@ import (
 	"github.com/jethroTLOU/tokigura/internal/core/config"
 	"github.com/jethroTLOU/tokigura/internal/core/database"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
-	"github.com/jethroTLOU/tokigura/internal/core/logger"
 	"github.com/jethroTLOU/tokigura/internal/identity/auth"
 	"github.com/jethroTLOU/tokigura/internal/identity/session"
 	"github.com/jethroTLOU/tokigura/internal/identity/user"
@@ -24,7 +23,6 @@ type moduleConfigs struct {
 
 func main() {
 	app := fx.New(
-		logger.Module,
 		config.Module,
 		fx.Provide(provideModuleConfigs),
 		server.Module,

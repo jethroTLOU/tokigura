@@ -82,7 +82,7 @@ func IsDevMode() bool {
 }
 
 func generateRandomString() string {
-	b := make([]byte, 32)
+	b := make([]byte, randomStringBytes)
 	_, _ = rand.Read(b)
 
 	return base64.StdEncoding.EncodeToString(b)

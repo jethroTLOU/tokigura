@@ -23,7 +23,21 @@ func RateLimit(maxRequests int, window time.Duration) func(http.Handler) http.Ha
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip, _ := GetIP(r.Context())
+			ip, ok := GetIP(r.Context())
+
+			if !ok || !ip.IsValid() {
+				if extracted, err := ExtractIP(r); err == nil && extracted.IsValid() {
+					ip = extracted
+				} else {
+					writeAuthError(
+						w,
+						http.StatusBadRequest,
+						apperr.CodeBadRequest,
+						"unable to determine client IP",
+					)
+					return
+				}
+			}
 
 			now := time.Now()
 
@@ -48,7 +62,6 @@ func RateLimit(maxRequests int, window time.Duration) func(http.Handler) http.Ha
 
 				mu.Unlock()
 				next.ServeHTTP(w, r)
-
 				return
 			}
 
@@ -60,7 +73,6 @@ func RateLimit(maxRequests int, window time.Duration) func(http.Handler) http.Ha
 					apperr.CodeTooManyRequests,
 					"Too many requests",
 				)
-
 				return
 			}
 

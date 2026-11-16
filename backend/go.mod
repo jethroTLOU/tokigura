@@ -10,6 +10,7 @@ require (
 	github.com/uptrace/bun/dialect/sqlitedialect v1.3.0
 	go.uber.org/fx v1.24.0
 	golang.org/x/crypto v0.58.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	modernc.org/sqlite v1.60.1
 )
 

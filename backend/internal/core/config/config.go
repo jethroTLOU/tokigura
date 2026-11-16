@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -29,6 +30,7 @@ type Config struct {
 	Database   string    `json:"database"`
 	Debug      bool      `json:"debug"`
 	UploadsDir string    `json:"uploadsDir"`
+	LogsDir    string    `json:"logsDir"`
 }
 
 var defaultCors = []string{"http://localhost:5173", "http://127.0.0.1:5173"}
@@ -46,6 +48,7 @@ func New() (*Config, error) {
 	configPath, _ := xdg.ConfigFile(filepath.Join(appName, "config.json"))
 	dbPath, _ := xdg.DataFile(filepath.Join(appName, "database.db"))
 	uploadsDir, _ := xdg.DataFile(filepath.Join(appName, "uploads"))
+	logsDir, _ := xdg.DataFile(filepath.Join(appName, "logs"))
 
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o750); err != nil {
 		return nil, err
@@ -53,21 +56,73 @@ func New() (*Config, error) {
 	if err := os.MkdirAll(uploadsDir, 0o750); err != nil {
 		return nil, err
 	}
+	if err := os.MkdirAll(logsDir, 0o750); err != nil {
+		return nil, err
+	}
+
+	cfg := buildDefaultConfig(dbPath, uploadsDir, logsDir)
 
 	fileData, err := os.ReadFile(configPath) //nolint:gosec // safe
 	if err != nil {
 		if os.IsNotExist(err) {
-			return createDefaultConfig(configPath, dbPath, uploadsDir)
+			return saveConfig(configPath, cfg)
 		}
 		return nil, err
 	}
 
-	var cfg Config
-	if err := json.Unmarshal(fileData, &cfg); err != nil {
+	if err := json.Unmarshal(fileData, cfg); err != nil { //nolint:govet // useless
 		return nil, err
 	}
 
-	return &cfg, nil
+	newData, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+
+	if !bytes.Equal(newData, fileData) {
+		if err := os.WriteFile(configPath, newData, 0o600); err != nil {
+			return nil, fmt.Errorf("failed to update config file: %w", err)
+		}
+	}
+
+	return cfg, nil
+}
+
+func buildDefaultConfig(dbPath, uploadsDir, logsDir string) *Config {
+	dsn := fmt.Sprintf(
+		"file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=synchronous(NORMAL)",
+		filepath.ToSlash(dbPath),
+	)
+
+	return &Config{
+		Database:   dsn,
+		Debug:      false,
+		UploadsDir: uploadsDir,
+		LogsDir:    logsDir,
+		Server: serverCfg{
+			Port:         defaultPort,
+			AllowOrigins: defaultCors,
+		},
+		Auth: authCfg{
+			JWTSecret:            generateRandomString(),
+			SecureCookies:        false,
+			AccessTokenDuration:  defaultAccessTokenDuration,
+			RefreshTokenDuration: defaultRefreshTokenDuration,
+		},
+	}
+}
+
+func saveConfig(configPath string, cfg *Config) (*Config, error) {
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err = os.WriteFile(configPath, data, 0o600); err != nil {
+		return nil, fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return cfg, nil
 }
 
 func GetAppName() string {
@@ -86,38 +141,4 @@ func generateRandomString() string {
 	_, _ = rand.Read(b)
 
 	return base64.StdEncoding.EncodeToString(b)
-}
-
-func createDefaultConfig(configPath, dbPath, uploadsDir string) (*Config, error) {
-	dsn := fmt.Sprintf(
-		"file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=synchronous(NORMAL)",
-		filepath.ToSlash(dbPath),
-	)
-
-	cfg := &Config{
-		Database:   dsn,
-		Debug:      false,
-		UploadsDir: uploadsDir,
-		Server: serverCfg{
-			Port:         defaultPort,
-			AllowOrigins: defaultCors,
-		},
-		Auth: authCfg{
-			JWTSecret:            generateRandomString(),
-			SecureCookies:        false,
-			AccessTokenDuration:  defaultAccessTokenDuration,
-			RefreshTokenDuration: defaultRefreshTokenDuration,
-		},
-	}
-
-	data, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal default config: %w", err)
-	}
-
-	if err = os.WriteFile(configPath, data, 0o600); err != nil {
-		return nil, fmt.Errorf("failed to write default config file: %w", err)
-	}
-
-	return cfg, nil
 }

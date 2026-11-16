@@ -6,6 +6,7 @@ import (
 	"github.com/jethroTLOU/tokigura/internal/core/config"
 	"github.com/jethroTLOU/tokigura/internal/core/database"
 	"github.com/jethroTLOU/tokigura/internal/core/jwt"
+	"github.com/jethroTLOU/tokigura/internal/core/logger"
 	"github.com/jethroTLOU/tokigura/internal/identity/auth"
 	"github.com/jethroTLOU/tokigura/internal/identity/session"
 	"github.com/jethroTLOU/tokigura/internal/identity/user"
@@ -25,6 +26,9 @@ func main() {
 	app := fx.New(
 		config.Module,
 		fx.Provide(provideModuleConfigs),
+		fx.Invoke(func(cfg *config.Config) {
+			logger.Init(cfg.LogsDir)
+		}),
 		server.Module,
 		database.Module,
 		jwt.Module,

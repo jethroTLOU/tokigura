@@ -1,3 +1,3 @@
 export { sessionQueries } from './api/queries';
-export { login, register, logout } from './api/requests';
+export { login, logout, register } from './api/requests';
 export { useSession } from './model/hooks';

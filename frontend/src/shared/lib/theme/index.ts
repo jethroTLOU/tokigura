@@ -1,4 +1,5 @@
-export { type Theme } from './types';
+export { ThemeProviderContext, useTheme } from './context';
+export type { Theme } from './types';
 export {
   COLOR_SCHEME_QUERY,
   disableTransitionsTemporarily,
@@ -6,4 +7,3 @@ export {
   isEditableTarget,
   isTheme,
 } from './utils';
-export { ThemeProviderContext } from './context';

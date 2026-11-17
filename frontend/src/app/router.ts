@@ -1,7 +1,8 @@
-import { routeTree } from '@/routeTree.gen';
 import { createRouter } from '@tanstack/react-router';
 
 import { queryClient } from '@/shared/api';
+
+import { routeTree } from '@/routeTree.gen';
 
 export const router = createRouter({
   routeTree,
@@ -12,5 +13,8 @@ export const router = createRouter({
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
+  }
+  interface StaticDataRouteOption {
+    authVariant?: 'login' | 'register';
   }
 }

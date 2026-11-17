@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   COLOR_SCHEME_QUERY,
-  type Theme,
-  ThemeProviderContext,
   disableTransitionsTemporarily,
   getSystemTheme,
   isEditableTarget,
   isTheme,
+  type Theme,
+  ThemeProviderContext,
 } from '@/shared/lib/theme';
 
 type ThemeProviderProps = {
@@ -118,8 +118,8 @@ export function ThemeProvider({
   );
 
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeProviderContext {...props} value={value}>
       {children}
-    </ThemeProviderContext.Provider>
+    </ThemeProviderContext>
   );
 }

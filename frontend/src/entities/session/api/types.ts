@@ -7,5 +7,4 @@ export type RegisterDTO = {
 export type LoginDTO = {
   username: string;
   password: string;
-  deviceId: string;
 };
